@@ -153,7 +153,7 @@ function MatchModalForm({
         {bothTeamsPresent && (
           <>
             <Text size="sm" mt="lg" fw={500}>
-              {t('winner_label')}
+              Winner
             </Text>
             <SegmentedControl
               fullWidth

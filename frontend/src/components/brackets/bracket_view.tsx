@@ -1,9 +1,11 @@
 import { Badge, Box, Card, Center, Group, Stack, Text } from '@mantine/core';
+import { IconTrophy } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 
 import { formatMatchInput1, formatMatchInput2 } from '@components/utils/match';
 import { MatchWithDetails, StageItemWithRounds } from '@openapi';
 
+import { roundLabel } from './bracket_preview';
 import classes from './bracket_view.module.css';
 
 type Side = 1 | 2;
@@ -58,7 +60,7 @@ function BracketMatch({
         className={`${classes.teamRow} ${winnerSide === side ? classes.winner : ''}`}
       >
         <Text size="sm" fw={winnerSide === side ? 700 : 400} lineClamp={1} className={classes.name}>
-          {isBye ? t('bye_label') : name}
+          {isBye ? 'Bye' : name}
         </Text>
         {!isBye && (
           <Text size="sm" fw={700} className={classes.score}>
@@ -78,7 +80,7 @@ function BracketMatch({
   );
 }
 
-export function SingleEliminationBracket({
+function ChampionBanner({
   stageItem,
   stageItemsLookup,
   matchesLookup,
@@ -89,13 +91,50 @@ export function SingleEliminationBracket({
 }) {
   const { t } = useTranslation();
   const rounds = [...stageItem.rounds].sort((a, b) => a.id - b.id);
+  const finalMatch = rounds[rounds.length - 1]?.matches?.[0] as MatchWithDetails | undefined;
+  if (finalMatch == null) return null;
+
+  const winnerSide = getWinnerSide(finalMatch);
+  if (winnerSide == null) return null;
+
+  const championName =
+    winnerSide === 1
+      ? formatMatchInput1(t, stageItemsLookup, matchesLookup, finalMatch)
+      : formatMatchInput2(t, stageItemsLookup, matchesLookup, finalMatch);
+
+  return (
+    <Card withBorder radius="md" mb="md" className={classes.champion}>
+      <Group justify="center" gap="sm">
+        <IconTrophy size={22} color="var(--mantine-color-yellow-6)" />
+        <Text fw={700} size="lg">
+          Champion: {championName}
+        </Text>
+      </Group>
+    </Card>
+  );
+}
+
+export function SingleEliminationBracket({
+  stageItem,
+  stageItemsLookup,
+  matchesLookup,
+}: {
+  stageItem: StageItemWithRounds;
+  stageItemsLookup: any;
+  matchesLookup: any;
+}) {
+  const rounds = [...stageItem.rounds].sort((a, b) => a.id - b.id);
 
   return (
     <Box className={classes.bracketScroll}>
+      <ChampionBanner
+        stageItem={stageItem}
+        stageItemsLookup={stageItemsLookup}
+        matchesLookup={matchesLookup}
+      />
       <Group align="stretch" gap="xl" wrap="nowrap" className={classes.bracket}>
         {rounds.map((round, index) => {
-          const isFinal = index === rounds.length - 1;
-          const label = isFinal ? t('final_label') : `${t('round_label')} ${index + 1}`;
+          const label = roundLabel(index, rounds.length);
           return (
             <Stack key={round.id} justify="space-around" gap="lg" className={classes.round}>
               <Center>

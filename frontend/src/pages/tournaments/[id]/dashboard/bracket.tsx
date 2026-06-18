@@ -42,8 +42,8 @@ export default function DashboardBracketPage() {
         <Stack style={{ maxWidth: '80rem', width: '100%' }} px="1rem" gap="xl">
           {eliminationStageItems.length < 1 ? (
             <NoContent
-              title={t('no_bracket_title')}
-              description=""
+              title="No bracket yet"
+              description="The organizer hasn't generated the bracket yet. Check back soon."
               icon={<AiOutlineHourglass />}
             />
           ) : (

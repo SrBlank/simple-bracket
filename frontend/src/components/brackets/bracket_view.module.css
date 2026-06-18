@@ -43,3 +43,8 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.champion {
+  background: light-dark(var(--mantine-color-yellow-0), var(--mantine-color-dark-6));
+  border-color: var(--mantine-color-yellow-5);
+}

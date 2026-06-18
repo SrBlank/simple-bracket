@@ -9,7 +9,6 @@ import {
   IconSortAscendingNumbers,
 } from '@tabler/icons-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import bracketClasses from '@components/brackets/bracket_view.module.css';
@@ -52,7 +51,6 @@ function standardSlots(teamIds: number[]): Slot[] {
 }
 
 export default function SeedingPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { tournamentData } = getTournamentIdFromRouter();
 
@@ -87,6 +85,7 @@ export default function SeedingPage() {
       : { kind: 'team', id: slot.teamId, name: nameById.get(slot.teamId) ?? '?' }
   );
   const allRounds = buildRoundsFromFirstRound(firstRoundSlots);
+  const totalRounds = allRounds.length;
   const laterRounds = allRounds.slice(1);
 
   // Warn if a match has two byes — that wastes a slot and lets a team skip the next round.
@@ -97,18 +96,18 @@ export default function SeedingPage() {
   const reseedStandard = () => setSlots(standardSlots(teams.map((team) => team.id)));
   const randomize = () => setSlots(standardSlots(shuffled(teams.map((team) => team.id))));
 
-  const generateFromSlots = async (slotsToUse: Slot[]) => {
+  const generate = async () => {
     setBusy(true);
     const response = await autoGenerateBracket(tournamentData.id, {
-      slots: slotsToUse.map((slot) => slot.teamId),
+      slots: slots.map((slot) => slot.teamId),
       replace_existing: true,
     });
     setBusy(false);
     if (response != null && (response as any).name !== 'AxiosError') {
       showNotification({
         color: 'green',
-        title: t('bracket_generated_title'),
-        message: '',
+        title: 'Bracket generated',
+        message: 'Players can now follow it on the public bracket.',
         icon: <IconCheck />,
       });
       const endpoint = dashboardEndpoint || tournamentData.id;
@@ -116,19 +115,13 @@ export default function SeedingPage() {
     }
   };
 
-  const generateRandom = async () => {
-    const randomSlots = standardSlots(shuffled(teams.map((team) => team.id)));
-    setSlots(randomSlots);
-    await generateFromSlots(randomSlots);
-  };
-
   if (teamCount < 2) {
     return (
       <TournamentLayout tournament_id={tournamentData.id}>
-        <Title mb="lg">{t('seeding_title')}</Title>
+        <Title mb="lg">Seeding</Title>
         <NoContent
-          title={t('seeding_need_teams_title')}
-          description={t('seeding_need_teams_description')}
+          title="Add teams first"
+          description="You need at least 2 teams before you can seed a bracket."
         />
       </TournamentLayout>
     );
@@ -137,7 +130,7 @@ export default function SeedingPage() {
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
       <Group justify="space-between" mb="md" align="flex-end">
-        <Title>{t('seeding_title')}</Title>
+        <Title>Seeding</Title>
         <Group>
           <Button
             variant="default"
@@ -145,7 +138,7 @@ export default function SeedingPage() {
             onClick={reseedStandard}
             disabled={busy}
           >
-            {t('standard_seeding_button')}
+            Standard seeding
           </Button>
           <Button
             variant="default"
@@ -153,29 +146,24 @@ export default function SeedingPage() {
             onClick={randomize}
             disabled={busy}
           >
-            {t('shuffle_button')}
+            Randomize
           </Button>
-          <Button
-            variant="light"
-            leftSection={<IconArrowsShuffle size={18} />}
-            onClick={generateRandom}
-            loading={busy}
-          >
-            {t('random_bracket_button')}
-          </Button>
-          <Button color="green" leftSection={<IconCheck size={18} />} onClick={() => generateFromSlots(slots)} loading={busy}>
-            {t('generate_update_bracket_button')}
+          <Button color="green" leftSection={<IconCheck size={18} />} onClick={generate} loading={busy}>
+            Generate bracket
           </Button>
         </Group>
       </Group>
 
       <Alert icon={<IconInfoCircle />} color="blue" variant="light" mb="md">
-        {t('bracket_drag_help')}
+        Drag teams to move them between bracket spots — the preview updates live. Use{' '}
+        <b>Standard seeding</b> or <b>Randomize</b> to arrange them automatically, then press{' '}
+        <b>Generate bracket</b>.
       </Alert>
 
       {hasDoubleBye && (
         <Alert color="yellow" variant="light" mb="md">
-          {t('double_bye_warning')}
+          A match has two byes, which would let a team advance a round without playing. Move a team
+          into that spot or use Standard seeding.
         </Alert>
       )}
 
@@ -185,7 +173,7 @@ export default function SeedingPage() {
           <Stack justify="space-around" gap="lg" className={bracketClasses.round}>
             <Center>
               <Badge variant="light" color="gray">
-                {laterRounds.length === 0 ? t('final_label') : `${t('round_label')} 1`}
+                {roundLabel(0, totalRounds)}
               </Badge>
             </Center>
             <DragDropContext
@@ -227,7 +215,7 @@ export default function SeedingPage() {
                             <Group gap="sm" wrap="nowrap">
                               {slot.teamId == null ? (
                                 <Text size="sm" c="dimmed" style={{ flex: 1 }}>
-                                  {t('bye_label')}
+                                  Bye
                                 </Text>
                               ) : (
                                 <Text size="sm" fw={500} style={{ flex: 1 }} lineClamp={1}>
@@ -252,7 +240,7 @@ export default function SeedingPage() {
             <BracketRoundColumn
               key={index}
               matches={matches}
-              label={roundLabel(t, index, laterRounds.length, 1)}
+              label={roundLabel(index + 1, totalRounds)}
             />
           ))}
         </Group>

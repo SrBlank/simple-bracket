@@ -1,5 +1,4 @@
 import { Badge, Box, Card, Center, Group, Stack, Text } from '@mantine/core';
-import { useTranslation } from 'react-i18next';
 
 import classes from './bracket_view.module.css';
 
@@ -74,7 +73,6 @@ export function buildBracketPreview(teamNames: string[]): PreviewMatch[][] {
 // --- Rendering ---
 
 export function SlotLabel({ slot }: { slot: PreviewSlot }) {
-  const { t } = useTranslation();
   if (slot.kind === 'team') {
     return (
       <Text size="sm" fw={500} lineClamp={1} className={classes.name}>
@@ -84,7 +82,7 @@ export function SlotLabel({ slot }: { slot: PreviewSlot }) {
   }
   return (
     <Text size="sm" c="dimmed" lineClamp={1} className={classes.name}>
-      {slot.kind === 'bye' ? t('bye_label') : t('tbd_label')}
+      {slot.kind === 'bye' ? 'Bye' : 'To be decided'}
     </Text>
   );
 }
@@ -116,16 +114,14 @@ export function BracketRoundColumn({ matches, label }: { matches: PreviewMatch[]
   );
 }
 
-// Label for a round given its index within the rounds array (final is always the last round).
-export function roundLabel(
-  t: (key: string) => string,
-  roundIndex: number,
-  totalRounds: number,
-  labelOffset = 0
-): string {
-  return roundIndex === totalRounds - 1
-    ? t('final_label')
-    : `${t('round_label')} ${roundIndex + 1 + labelOffset}`;
+// Names the rounds from the end so they read naturally: the last round is the Final, then
+// Semifinals, Quarterfinals, and earlier rounds are numbered.
+export function roundLabel(roundIndex: number, totalRounds: number, labelOffset = 0): string {
+  const fromEnd = totalRounds - 1 - roundIndex;
+  if (fromEnd === 0) return 'Final';
+  if (fromEnd === 1) return 'Semifinals';
+  if (fromEnd === 2) return 'Quarterfinals';
+  return `Round ${roundIndex + 1 + labelOffset}`;
 }
 
 export function BracketRoundsView({
@@ -135,8 +131,9 @@ export function BracketRoundsView({
   rounds: PreviewMatch[][];
   labelOffset?: number;
 }) {
-  const { t } = useTranslation();
-
+  // When rendering a slice of the rounds (e.g. rounds 2+), totalRounds reflects the full
+  // bracket so the Final/Semifinals naming stays correct.
+  const totalRounds = rounds.length + labelOffset;
   return (
     <Box className={classes.bracketScroll}>
       <Group align="stretch" gap="xl" wrap="nowrap" className={classes.bracket}>
@@ -144,7 +141,7 @@ export function BracketRoundsView({
           <BracketRoundColumn
             key={roundIndex}
             matches={matches}
-            label={roundLabel(t, roundIndex, rounds.length, labelOffset)}
+            label={roundLabel(roundIndex + labelOffset, totalRounds)}
           />
         ))}
       </Group>
@@ -153,13 +150,12 @@ export function BracketRoundsView({
 }
 
 export function BracketPreview({ teamNames }: { teamNames: string[] }) {
-  const { t } = useTranslation();
   const rounds = buildBracketPreview(teamNames);
 
   if (rounds.length < 1) {
     return (
       <Text c="dimmed" size="sm">
-        {t('seeding_preview_empty')}
+        Add at least 2 teams to preview the bracket.
       </Text>
     );
   }

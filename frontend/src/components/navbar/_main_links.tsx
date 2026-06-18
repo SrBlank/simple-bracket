@@ -104,7 +104,7 @@ export function TournamentLinks({ tournament_id }: any) {
     },
     {
       icon: IconSitemap,
-      label: capitalize(t('seeding_title')),
+      label: 'Seeding',
       link: `${tm_prefix}/seeding`,
     },
     {
