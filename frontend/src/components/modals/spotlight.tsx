@@ -4,13 +4,10 @@ import {
   IconBrackets,
   IconCalendarEvent,
   IconHome,
-  IconScoreboard,
   IconSearch,
   IconSettings,
   IconTrophy,
-  IconUser,
   IconUsers,
-  IconUsersGroup,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -29,20 +26,6 @@ export function BracketSpotlight() {
       description: t('home_spotlight_description'),
       onClick: () => navigate('/'),
       leftSection: <IconHome size="1.2rem" />,
-    },
-    {
-      id: 'clubs',
-      title: t('clubs_title'),
-      description: t('clubs_spotlight_description'),
-      onClick: () => navigate('/clubs'),
-      leftSection: <IconUsersGroup size="1.2rem" />,
-    },
-    {
-      id: 'user settings',
-      title: t('user_settings_title'),
-      description: t('user_settings_spotlight_description'),
-      onClick: () => navigate('/user'),
-      leftSection: <IconUser size="1.2rem" />,
     },
   ];
 
@@ -88,13 +71,6 @@ export function BracketSpotlight() {
       description: t('tournament_setting_spotlight_description'),
       onClick: () => navigate(`/tournaments/${tournamentId}/settings`),
       leftSection: <IconSettings size="1.2rem" />,
-    },
-    {
-      id: 'rankings',
-      title: t('rankings_title'),
-      description: t('rankings_spotlight_description'),
-      onClick: () => navigate(`/tournaments/${tournamentId}/rankings`),
-      leftSection: <IconScoreboard size="1.2rem" />,
     },
   ];
   const allActions = tournamentId >= 0 ? actions.concat(tournamentActions) : actions;

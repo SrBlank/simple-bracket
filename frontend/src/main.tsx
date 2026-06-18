@@ -13,27 +13,24 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 
 import i18n from '../i18n';
 import { BracketSpotlight } from './components/modals/spotlight';
+import { ensureAutoLogin } from './services/adapter';
 import HomePage from './pages';
 import NotFoundPage from './pages/404';
-import ClubsPage from './pages/clubs';
-import CreateAccountPage from './pages/create_account';
-import CreateDemoAccountPage from './pages/demo';
-import LoginPage from './pages/login';
-import PasswordResetPage from './pages/password_reset';
 import DashboardSchedulePage from './pages/tournaments/[id]/dashboard';
+import DashboardBracketPage from './pages/tournaments/[id]/dashboard/bracket';
 import DashboardNotFoundPage from './pages/tournaments/[id]/dashboard/dashboard_404';
 import CourtsPresentPage from './pages/tournaments/[id]/dashboard/present/courts';
 import StandingsPresentPage from './pages/tournaments/[id]/dashboard/present/standings';
 import DashboardStandingsPage from './pages/tournaments/[id]/dashboard/standings';
 import PlayersPage from './pages/tournaments/[id]/players';
-import RankingsPage from './pages/tournaments/[id]/rankings';
 import ResultsPage from './pages/tournaments/[id]/results';
 import SchedulePage from './pages/tournaments/[id]/schedule';
+import SeedingPage from './pages/tournaments/[id]/seeding';
 import SettingsPage from './pages/tournaments/[id]/settings';
+import SetupWizardPage from './pages/tournaments/[id]/setup';
 import StagesPage from './pages/tournaments/[id]/stages';
 import SwissTournamentPage from './pages/tournaments/[id]/stages/swiss/[stage_item_id]';
 import TeamsPage from './pages/tournaments/[id]/teams';
-import UserPage from './pages/user';
 
 const theme = createTheme({
   colors: {
@@ -65,7 +62,9 @@ function AnalyticsScript() {
   document.head.appendChild(script);
 }
 
-createRoot(document.getElementById('root')!).render(
+// Silently authenticate as the seeded organizer before rendering, so there is no login page.
+ensureAutoLogin().finally(() => {
+  createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <NuqsAdapter>
       <BrowserRouter>
@@ -75,19 +74,14 @@ createRoot(document.getElementById('root')!).render(
             <Notifications />
             <Routes>
               <Route index element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/clubs" element={<ClubsPage />} />
-              <Route path="/demo" element={<CreateDemoAccountPage />} />
-              <Route path="/user" element={<UserPage />} />
-              <Route path="/password-reset" element={<PasswordResetPage />} />
-              <Route path="/create-account" element={<CreateAccountPage />} />
 
               <Route path="/tournaments">
                 <Route path=":id">
+                  <Route path="setup" element={<SetupWizardPage />} />
+                  <Route path="seeding" element={<SeedingPage />} />
                   <Route path="players" element={<PlayersPage />} />
                   <Route path="teams" element={<TeamsPage />} />
                   <Route path="schedule" element={<SchedulePage />} />
-                  <Route path="rankings" element={<RankingsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="results" element={<ResultsPage />} />
                   <Route path="stages">
@@ -96,6 +90,7 @@ createRoot(document.getElementById('root')!).render(
                   </Route>
                   <Route path="dashboard">
                     <Route index element={<DashboardSchedulePage />} />
+                    <Route path="bracket" element={<DashboardBracketPage />} />
                     <Route path="standings" element={<DashboardStandingsPage />} />
                     <Route path="present">
                       <Route path="courts" element={<CourtsPresentPage />} />
@@ -112,6 +107,7 @@ createRoot(document.getElementById('root')!).render(
       </BrowserRouter>
     </NuqsAdapter>
   </StrictMode>
-);
+  );
 
-AnalyticsScript();
+  AnalyticsScript();
+});

@@ -17,7 +17,12 @@ services:
       PG_DSN: postgresql://bracket_dev:bracket_dev@postgres:5432/bracket_dev
       SERVE_FRONTEND: true
       API_PREFIX: '/api'
-    image: ghcr.io/evroon/bracket
+    # Build the image from this repo so local changes (custom tournament workflow) are
+    # included, instead of pulling the upstream published image.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bracket-local
     networks:
       - bracket_lan
     ports:

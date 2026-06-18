@@ -1,13 +1,4 @@
-import {
-  Button,
-  Checkbox,
-  Grid,
-  Image,
-  Modal,
-  NumberInput,
-  Select,
-  TextInput,
-} from '@mantine/core';
+import { Button, Checkbox, Grid, Image, Modal, NumberInput, TextInput } from '@mantine/core';
 import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { GoPlus } from '@react-icons/all-files/go/GoPlus';
@@ -17,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { SWRResponse } from 'swr';
 
 import SaveButton from '@components/buttons/save';
-import { assert_not_none } from '@components/utils/assert';
 import { Club, Tournament, TournamentsResponse } from '@openapi';
 import { getBaseApiUrl, getClubs } from '@services/adapter';
 import { createTournament } from '@services/tournament';
@@ -44,11 +34,13 @@ function GeneralTournamentForm({
   clubs: Club[];
 }) {
   const { t } = useTranslation();
+  // Single-organizer mode: tournaments always belong to the one default club, so there is no
+  // club picker. We attach to the first (default) club automatically.
+  const defaultClubId = clubs.length > 0 ? clubs[0].id : null;
   const form = useForm({
     initialValues: {
       start_time: dayjs(),
       name: '',
-      club_id: null,
       dashboard_public: true,
       dashboard_endpoint: '',
       players_can_be_in_multiple_teams: false,
@@ -59,7 +51,6 @@ function GeneralTournamentForm({
 
     validate: {
       name: (value) => (value.length > 0 ? null : t('too_short_name_validation')),
-      club_id: (value) => (value != null ? null : t('club_choose_title')),
       start_time: (value) => (value != null ? null : t('start_time_choose_title')),
       duration_minutes: (value) =>
         value != null && value > 0 ? null : t('duration_minutes_choose_title'),
@@ -71,8 +62,11 @@ function GeneralTournamentForm({
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
+        if (defaultClubId == null) {
+          return;
+        }
         await createTournament(
-          parseInt(assert_not_none(values.club_id as unknown as string), 10),
+          defaultClubId,
           values.name,
           values.dashboard_public,
           values.dashboard_endpoint,
@@ -91,17 +85,6 @@ function GeneralTournamentForm({
         label={t('name_input_label')}
         placeholder={t('tournament_name_input_placeholder')}
         {...form.getInputProps('name')}
-      />
-
-      <Select
-        withAsterisk
-        data={clubs.map((p) => ({ value: `${p.id}`, label: p.name }))}
-        label={t('club_select_label')}
-        placeholder={t('club_select_placeholder')}
-        searchable
-        limit={20}
-        style={{ marginTop: 10 }}
-        {...form.getInputProps('club_id')}
       />
 
       <TextInput

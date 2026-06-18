@@ -1,6 +1,47 @@
 {
   "components": {
     "schemas": {
+      "AutoBracketCreateBody": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "replace_existing": {
+            "default": false,
+            "title": "Replace Existing",
+            "type": "boolean"
+          },
+          "team_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Ids"
+          }
+        },
+        "required": [
+          "name",
+          "team_ids",
+          "replace_existing"
+        ],
+        "title": "AutoBracketCreateBody",
+        "type": "object"
+      },
       "Body_login_for_access_token_token_post": {
         "properties": {
           "client_id": {
@@ -3497,6 +3538,64 @@
         "summary": "Update Tournament By Id",
         "tags": [
           "Tournaments"
+        ]
+      }
+    },
+    "/tournaments/{tournament_id}/auto_generate_bracket": {
+      "post": {
+        "description": "Simplified-workflow helper: create a seeded single-elimination bracket from the\ntournament's teams in one call. Supports any number of teams (>= 2) by padding with byes.",
+        "operationId": "auto_generate_bracket_tournaments__tournament_id__auto_generate_bracket_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournament_id",
+            "required": true,
+            "schema": {
+              "title": "Tournament Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoBracketCreateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Auto Generate Bracket",
+        "tags": [
+          "Stage Items"
         ]
       }
     },

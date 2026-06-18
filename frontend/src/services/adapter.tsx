@@ -1,6 +1,5 @@
 import { showNotification } from '@mantine/notifications';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
-import { useNavigate } from 'react-router';
 import useSWR, { SWRResponse } from 'swr';
 
 import { SchedulerSettings } from '@components/utils/match';
@@ -67,6 +66,35 @@ export function getBaseApiUrl() {
   return import.meta.env.VITE_API_BASE_URL != null
     ? import.meta.env.VITE_API_BASE_URL
     : 'http://localhost:8400';
+}
+
+// Single-organizer mode: this app is meant for running one local, one-off tournament,
+// so instead of a login page we silently authenticate as the seeded organizer account.
+// The credentials match the admin user the backend seeds on first boot (see config.py /
+// db_init.py). They can be overridden with VITE_ORGANIZER_EMAIL / VITE_ORGANIZER_PASSWORD.
+const ORGANIZER_EMAIL = import.meta.env.VITE_ORGANIZER_EMAIL ?? 'test@example.org';
+const ORGANIZER_PASSWORD =
+  import.meta.env.VITE_ORGANIZER_PASSWORD ?? 'aeGhoe1ahng2Aezai0Dei6Aih6dieHoo';
+
+export async function ensureAutoLogin(): Promise<void> {
+  if (tokenPresent()) {
+    return;
+  }
+
+  const body = new FormData();
+  body.append('grant_type', 'password');
+  body.append('username', ORGANIZER_EMAIL);
+  body.append('password', ORGANIZER_PASSWORD);
+
+  try {
+    const { data } = await axios.create({ baseURL: getBaseApiUrl() }).post('token', body);
+    if (data != null) {
+      localStorage.setItem('login', JSON.stringify(data));
+    }
+  } catch {
+    // Backend may not be ready yet on first boot; the SWR layer will retry requests and
+    // checkForAuthError() will trigger another auto-login attempt when needed.
+  }
 }
 
 export function createAxios() {
@@ -264,15 +292,15 @@ export async function removeTeamLogo(tournament_id: number, team_id: number) {
 }
 
 export function checkForAuthError(response: any) {
+  // Single-organizer mode: rather than redirecting to a login page (there isn't one), we
+  // re-run the silent auto-login and reload when no token is present.
   if (typeof window !== 'undefined' && !tokenPresent()) {
-    const navigate = useNavigate();
-    navigate('/login');
+    ensureAutoLogin().then(() => window.location.reload());
+    return;
   }
 
-  // We send a simple GET `/clubs` request to test whether we really should log out. // Next
-  // sometimes uses out-of-date local storage, so we send an additional request with up-to-date
-  // local storage.
-  // If that gives a 401, we log out.
+  // Verify a 401 is real (local storage can be momentarily stale) with a fresh request.
+  // If the token has genuinely expired, drop it and silently re-authenticate.
   function responseHasAuthError(_response: any) {
     return (
       _response.error != null &&
@@ -287,6 +315,7 @@ export function checkForAuthError(response: any) {
       .catch((error: any) => {
         if (error.toJSON().status === 401) {
           performLogout();
+          ensureAutoLogin().then(() => window.location.reload());
         }
       });
   }

@@ -1,13 +1,71 @@
-from fastapi import HTTPException
-from starlette import status
+import math
 
 from bracket.models.db.match import Match, MatchCreateBody
+from bracket.models.db.stage_item_inputs import (
+    StageItemInputCreateBody,
+    StageItemInputCreateBodyEmpty,
+    StageItemInputCreateBodyFinal,
+)
 from bracket.models.db.tournament import Tournament
 from bracket.models.db.util import RoundWithMatches, StageItemWithRounds
 from bracket.sql.matches import sql_create_match
 from bracket.sql.rounds import get_rounds_for_stage_item
 from bracket.sql.tournaments import sql_get_tournament
-from bracket.utils.id_types import TournamentId
+from bracket.utils.id_types import TeamId, TournamentId
+
+
+def get_next_power_of_two(team_count: int) -> int:
+    """
+    Smallest power of two that can hold `team_count` competitors (i.e. the bracket size).
+    """
+    if team_count < 2:
+        return 2
+    return 2 ** math.ceil(math.log2(team_count))
+
+
+def get_bracket_seeding_order(bracket_size: int) -> list[int]:
+    """
+    Standard single-elimination seeding order.
+
+    Returns a list of 1-indexed seed numbers in slot order, so that pairing adjacent slots
+    (0v1, 2v3, ...) yields the canonical matchups: the top seed meets the bottom seed, the
+    2nd seed meets the 2nd-to-last, and so on. When the highest seed numbers are byes, this
+    distributes byes to the top seeds and ensures two byes never meet, so no competitor gets
+    a free ride past the first round.
+
+    e.g. bracket_size=8 -> [1, 8, 4, 5, 2, 7, 3, 6]
+    """
+    assert bracket_size >= 1 and (bracket_size & (bracket_size - 1)) == 0, (
+        "bracket_size must be a power of two"
+    )
+
+    order = [1]
+    while len(order) < bracket_size:
+        size = len(order) * 2
+        order = [seed for s in order for seed in (s, size + 1 - s)]
+
+    return order
+
+
+def build_seeded_elimination_inputs(team_ids: list[TeamId]) -> list[StageItemInputCreateBody]:
+    """
+    Map an ordered (by seed) list of teams onto a single-elimination bracket, padding with
+    byes (empty inputs) up to the next power of two and placing teams in standard seeding
+    order. Slot numbers are 1-indexed and contiguous.
+    """
+    team_count = len(team_ids)
+    bracket_size = get_next_power_of_two(team_count)
+    seeding_order = get_bracket_seeding_order(bracket_size)
+
+    inputs: list[StageItemInputCreateBody] = []
+    for slot_index, seed in enumerate(seeding_order):
+        slot = slot_index + 1
+        if seed <= team_count:
+            inputs.append(StageItemInputCreateBodyFinal(slot=slot, team_id=team_ids[seed - 1]))
+        else:
+            inputs.append(StageItemInputCreateBodyEmpty(slot=slot))
+
+    return inputs
 
 
 def determine_matches_first_round(
@@ -86,20 +144,13 @@ async def build_single_elimination_stage_item(
 
 
 def get_number_of_rounds_to_create_single_elimination(team_count: int) -> int:
-    if team_count < 1:
+    """
+    Number of rounds in a single-elimination bracket holding `team_count` competitors.
+
+    Any count >= 2 is supported: the bracket is padded with byes to the next power of two,
+    so e.g. 5 teams -> bracket of 8 -> 3 rounds.
+    """
+    if team_count < 2:
         return 0
 
-    game_count_lookup = {
-        2: 1,
-        4: 2,
-        8: 3,
-        16: 4,
-        32: 5,
-    }
-    if team_count not in game_count_lookup:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Number of teams invalid, should be one of {list(game_count_lookup.keys())}",
-        )
-
-    return game_count_lookup[team_count]
+    return int(math.log2(get_next_power_of_two(team_count)))

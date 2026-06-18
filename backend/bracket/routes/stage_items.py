@@ -17,11 +17,13 @@ from bracket.logic.ranking.elimination import (
 )
 from bracket.logic.scheduling.builder import (
     build_matches_for_stage_item,
+    generate_single_elimination_bracket_from_teams,
 )
 from bracket.logic.scheduling.upcoming_matches import get_upcoming_matches_for_swiss
 from bracket.logic.subscriptions import check_requirement
 from bracket.models.db.match import MatchCreateBody, MatchFilter, SuggestedMatch
 from bracket.models.db.round import RoundInsertable
+from bracket.models.db.shared import BaseModelORM
 from bracket.models.db.stage_item import (
     StageItemActivateNextBody,
     StageItemCreateBody,
@@ -53,15 +55,25 @@ from bracket.sql.stage_items import (
     sql_create_stage_item_with_empty_inputs,
 )
 from bracket.sql.stages import get_full_tournament_details
+from bracket.sql.teams import get_teams_with_members
 from bracket.sql.tournaments import sql_get_tournament
 from bracket.sql.validation import check_foreign_keys_belong_to_tournament
 from bracket.utils.errors import (
     ForeignKey,
     check_foreign_key_violation,
 )
-from bracket.utils.id_types import StageItemId, TournamentId
+from bracket.utils.id_types import StageItemId, TeamId, TournamentId
 
 router = APIRouter(prefix=config.api_prefix)
+
+
+class AutoBracketCreateBody(BaseModelORM):
+    name: str | None = None
+    # Optional explicit seed order. When omitted, all teams in the tournament are used,
+    # ordered by their current ranking (strongest first) so byes go to the top seeds.
+    team_ids: list[TeamId] | None = None
+    # When True, an existing single-elimination bracket is replaced (used when re-seeding).
+    replace_existing: bool = False
 
 
 @router.delete(
@@ -95,6 +107,31 @@ async def create_stage_item(
 
     stage_item = await sql_create_stage_item_with_empty_inputs(tournament_id, stage_body)
     await build_matches_for_stage_item(stage_item, tournament_id)
+    return SuccessResponse()
+
+
+@router.post(
+    "/tournaments/{tournament_id}/auto_generate_bracket", response_model=SuccessResponse
+)
+async def auto_generate_bracket(
+    tournament_id: TournamentId,
+    body: AutoBracketCreateBody,
+    _: UserPublic = Depends(user_authenticated_for_tournament),
+    __: Tournament = Depends(disallow_archived_tournament),
+) -> SuccessResponse:
+    """
+    Simplified-workflow helper: create a seeded single-elimination bracket from the
+    tournament's teams in one call. Supports any number of teams (>= 2) by padding with byes.
+    """
+    if body.team_ids is not None:
+        team_ids = body.team_ids
+    else:
+        teams = await get_teams_with_members(tournament_id, only_active_teams=True)
+        team_ids = [team.id for team in teams]
+
+    await generate_single_elimination_bracket_from_teams(
+        tournament_id, team_ids, body.name, replace_existing=body.replace_existing
+    )
     return SuccessResponse()
 
 

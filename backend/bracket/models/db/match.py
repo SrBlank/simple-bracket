@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from bracket.models.db.court import Court
 from bracket.models.db.shared import BaseModelORM
-from bracket.models.db.stage_item_inputs import StageItemInput
+from bracket.models.db.stage_item_inputs import StageItemInput, StageItemInputEmpty
 from bracket.utils.id_types import CourtId, MatchId, RoundId, StageItemInputId
 from bracket.utils.types import assert_some
 
@@ -44,6 +44,19 @@ class Match(MatchInsertable):
     stage_item_input2: StageItemInput | None = None
 
     def get_winner(self) -> StageItemInput | None:
+        # Byes: when a competitor faces an empty slot they advance automatically, regardless
+        # of score. This keeps brackets with a non-power-of-2 number of teams flowing. Note we
+        # check specifically for StageItemInputEmpty (a real bye) and not `None` inputs, since
+        # later rounds legitimately have `None` inputs until a previous winner is decided.
+        input1_is_bye = isinstance(self.stage_item_input1, StageItemInputEmpty)
+        input2_is_bye = isinstance(self.stage_item_input2, StageItemInputEmpty)
+        if input1_is_bye and input2_is_bye:
+            return None
+        if input1_is_bye:
+            return self.stage_item_input2
+        if input2_is_bye:
+            return self.stage_item_input1
+
         if self.stage_item_input1_score > self.stage_item_input2_score:
             return self.stage_item_input1
         if self.stage_item_input1_score < self.stage_item_input2_score:

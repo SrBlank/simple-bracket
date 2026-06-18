@@ -59,7 +59,7 @@ export default function TournamentsCardTable({
       <Group key={tournament.id} className={classes.card}>
         <UnstyledButton
           component={PreloadLink}
-          href={`/tournaments/${tournament.id}/stages`}
+          href={`/tournaments/${tournament.id}/setup`}
           w="100%"
         >
           <Card shadow="sm" padding="lg" radius="md" withBorder w="100%">
@@ -93,7 +93,7 @@ export default function TournamentsCardTable({
                   color="blue"
                   fullWidth
                   radius="md"
-                  href={`/tournaments/${tournament.id}/stages`}
+                  href={`/tournaments/${tournament.id}/setup`}
                 >
                   OPEN
                 </Button>

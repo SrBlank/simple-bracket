@@ -1,4 +1,14 @@
-import { Button, Center, Checkbox, Divider, Grid, Modal, NumberInput, Text } from '@mantine/core';
+import {
+  Button,
+  Center,
+  Checkbox,
+  Divider,
+  Grid,
+  Modal,
+  NumberInput,
+  SegmentedControl,
+  Text,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -89,6 +99,24 @@ function MatchModalForm({
   const team1Name = formatMatchInput1(t, stageItemsLookup, matchesLookup, match);
   const team2Name = formatMatchInput2(t, stageItemsLookup, matchesLookup, match);
 
+  // The winner is whichever side has the higher score; the bracket advances that team. The
+  // selector below lets the organizer declare a winner directly (e.g. for a walkover or to
+  // break a tie) by nudging the score so the chosen side leads, without discarding a real
+  // score that already reflects the result.
+  const score1 = form.values.stage_item_input1_score;
+  const score2 = form.values.stage_item_input2_score;
+  const currentWinner = score1 > score2 ? 'team1' : score2 > score1 ? 'team2' : '';
+
+  const declareWinner = (winner: string) => {
+    if (winner === 'team1' && score1 <= score2) {
+      form.setFieldValue('stage_item_input1_score', score2 + 1);
+    } else if (winner === 'team2' && score2 <= score1) {
+      form.setFieldValue('stage_item_input2_score', score1 + 1);
+    }
+  };
+
+  const bothTeamsPresent = match.stage_item_input1 != null && match.stage_item_input2 != null;
+
   return (
     <>
       <form
@@ -121,6 +149,26 @@ function MatchModalForm({
           placeholder={`${t('score_of_label')} ${team2Name}`}
           {...form.getInputProps('stage_item_input2_score')}
         />
+
+        {bothTeamsPresent && (
+          <>
+            <Text size="sm" mt="lg" fw={500}>
+              {t('winner_label')}
+            </Text>
+            <SegmentedControl
+              fullWidth
+              mt={4}
+              color="green"
+              data={[
+                { label: team1Name, value: 'team1' },
+                { label: team2Name, value: 'team2' },
+              ]}
+              value={currentWinner}
+              onChange={declareWinner}
+            />
+          </>
+        )}
+
         <Divider mt="lg" />
 
         <Text size="sm" mt="lg">

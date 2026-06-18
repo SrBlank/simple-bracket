@@ -11,6 +11,24 @@ export async function createStageItem(
     .catch((response: any) => handleRequestError(response));
 }
 
+export async function autoGenerateBracket(
+  tournament_id: number,
+  options: {
+    name?: string | null;
+    team_ids?: number[] | null;
+    replace_existing?: boolean;
+  } = {}
+) {
+  const { name = null, team_ids = null, replace_existing = false } = options;
+  return createAxios()
+    .post(`tournaments/${tournament_id}/auto_generate_bracket`, {
+      name,
+      team_ids,
+      replace_existing,
+    })
+    .catch((response: any) => handleRequestError(response));
+}
+
 export async function updateStageItem(
   tournament_id: number,
   stage_item_id: number,

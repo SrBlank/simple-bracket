@@ -8,11 +8,12 @@ import {
   IconCalendar,
   IconDots,
   IconHome,
-  IconScoreboard,
   IconSettings,
+  IconSitemap,
   IconTrophy,
   IconUser,
   IconUsers,
+  IconWand,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
@@ -73,14 +74,7 @@ export function getBaseLinksDict() {
   const { t } = useTranslation();
 
   return [
-    { link: '/clubs', label: capitalize(t('clubs_title')), links: [], icon: IconUsers },
     { link: '/', label: capitalize(t('tournaments_title')), links: [], icon: IconHome },
-    {
-      link: '/user',
-      label: t('user_title'),
-      links: [],
-      icon: IconUser,
-    },
     {
       icon: IconDots,
       link: '',
@@ -114,6 +108,16 @@ export function TournamentLinks({ tournament_id }: any) {
 
   const data = [
     {
+      icon: IconWand,
+      label: 'Setup',
+      link: `${tm_prefix}/setup`,
+    },
+    {
+      icon: IconSitemap,
+      label: capitalize(t('seeding_title')),
+      link: `${tm_prefix}/seeding`,
+    },
+    {
       icon: IconTrophy,
       label: capitalize(t('stage_title')),
       link: `${tm_prefix}/stages`,
@@ -137,11 +141,6 @@ export function TournamentLinks({ tournament_id }: any) {
       icon: IconBrackets,
       label: capitalize(t('results_title')),
       link: `${tm_prefix}/results`,
-    },
-    {
-      icon: IconScoreboard,
-      label: capitalize(t('rankings_title')),
-      link: `${tm_prefix}/rankings`,
     },
     {
       icon: IconSettings,

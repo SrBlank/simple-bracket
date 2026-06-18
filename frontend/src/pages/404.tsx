@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 
 import classes from '@pages/404.module.css';
-import { tokenPresent } from '@services/local_storage';
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
@@ -17,11 +16,7 @@ export default function NotFoundPage() {
         {t('not_found_description')}
       </Text>
       <Group justify="center">
-        <Button
-          variant="subtle"
-          size="md"
-          onClick={() => (tokenPresent() ? navigate('/') : navigate('/login'))}
-        >
+        <Button variant="subtle" size="md" onClick={() => navigate('/')}>
           {t('back_home_nav')}
         </Button>
       </Group>
