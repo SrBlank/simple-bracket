@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { SWRResponse } from 'swr';
 
 import SaveButton from '@components/buttons/save';
+import { TournamentTypeFields } from '@components/forms/tournament_type_fields';
 import { Club, Tournament, TournamentsResponse } from '@openapi';
 import { getBaseApiUrl, getClubs } from '@services/adapter';
 import { createTournament } from '@services/tournament';
@@ -45,6 +46,10 @@ function GeneralTournamentForm({
       dashboard_endpoint: '',
       players_can_be_in_multiple_teams: false,
       auto_assign_courts: true,
+      tournament_type: 'GENERIC' as 'GENERIC' | 'PICKLEBALL',
+      scheduling_mode: 'TIMED' as 'TIMED' | 'DYNAMIC',
+      court_auto_advance: true,
+      show_player_names: false,
       duration_minutes: 10,
       margin_minutes: 5,
     },
@@ -65,17 +70,7 @@ function GeneralTournamentForm({
         if (defaultClubId == null) {
           return;
         }
-        await createTournament(
-          defaultClubId,
-          values.name,
-          values.dashboard_public,
-          values.dashboard_endpoint,
-          values.players_can_be_in_multiple_teams,
-          values.auto_assign_courts,
-          values.start_time,
-          values.duration_minutes,
-          values.margin_minutes
-        );
+        await createTournament(defaultClubId, values);
         await swrTournamentsResponse.mutate();
         setOpened(false);
       })}
@@ -93,44 +88,50 @@ function GeneralTournamentForm({
         mt="lg"
         {...form.getInputProps('dashboard_endpoint')}
       />
-      <Grid mt="1rem">
-        <Grid.Col span={{ sm: 9 }}>
-          <DateTimePicker
-            leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-            mx="auto"
-            {...form.getInputProps('start_time')}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ sm: 3 }}>
-          <Button
-            fullWidth
-            color="indigo"
-            leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
-            onClick={() => {
-              form.setFieldValue('start_time', dayjs());
-            }}
-          >
-            {t('now_button')}
-          </Button>
-        </Grid.Col>
-      </Grid>
+      <TournamentTypeFields form={form} />
 
-      <Grid>
-        <Grid.Col span={{ sm: 6 }}>
-          <NumberInput
-            label={t('match_duration_label')}
-            mt="lg"
-            {...form.getInputProps('duration_minutes')}
-          />
-        </Grid.Col>
-        <Grid.Col span={{ sm: 6 }}>
-          <NumberInput
-            label={t('time_between_matches_label')}
-            mt="lg"
-            {...form.getInputProps('margin_minutes')}
-          />
-        </Grid.Col>
-      </Grid>
+      {form.values.scheduling_mode === 'TIMED' && (
+        <>
+          <Grid mt="1rem">
+            <Grid.Col span={{ sm: 9 }}>
+              <DateTimePicker
+                leftSection={<IconCalendar size="1.1rem" stroke={1.5} />}
+                mx="auto"
+                {...form.getInputProps('start_time')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ sm: 3 }}>
+              <Button
+                fullWidth
+                color="indigo"
+                leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
+                onClick={() => {
+                  form.setFieldValue('start_time', dayjs());
+                }}
+              >
+                {t('now_button')}
+              </Button>
+            </Grid.Col>
+          </Grid>
+
+          <Grid>
+            <Grid.Col span={{ sm: 6 }}>
+              <NumberInput
+                label={t('match_duration_label')}
+                mt="lg"
+                {...form.getInputProps('duration_minutes')}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ sm: 6 }}>
+              <NumberInput
+                label={t('time_between_matches_label')}
+                mt="lg"
+                {...form.getInputProps('margin_minutes')}
+              />
+            </Grid.Col>
+          </Grid>
+        </>
+      )}
 
       <Checkbox
         mt="md"
@@ -141,11 +142,6 @@ function GeneralTournamentForm({
         mt="md"
         label={t('miscellaneous_label')}
         {...form.getInputProps('players_can_be_in_multiple_teams', { type: 'checkbox' })}
-      />
-      <Checkbox
-        mt="md"
-        label={t('auto_assign_courts_label')}
-        {...form.getInputProps('auto_assign_courts', { type: 'checkbox' })}
       />
 
       <Button fullWidth mt={8} color="green" type="submit">

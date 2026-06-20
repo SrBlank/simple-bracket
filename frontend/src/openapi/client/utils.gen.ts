@@ -65,7 +65,7 @@ const checkForExistence = (
   options: Pick<RequestOptions, 'auth' | 'query'> & {
     headers: Record<any, unknown>;
   },
-  name?: string
+  name?: string,
 ): boolean => {
   if (!name) {
     return false;
@@ -130,7 +130,7 @@ export const buildUrl: Client['buildUrl'] = (options) => {
   const instanceBaseUrl = options.axios?.defaults?.baseURL;
 
   const baseUrl =
-    !!options.baseURL && typeof options.baseURL === 'string' ? options.baseURL : instanceBaseUrl;
+    options.baseURL && typeof options.baseURL === 'string' ? options.baseURL : instanceBaseUrl;
 
   return getUrl({
     baseUrl: baseUrl as string,
@@ -192,7 +192,7 @@ export const mergeHeaders = (
           mergedHeaders[key] = [...(mergedHeaders[key] ?? []), v as string];
         }
       } else if (value !== undefined) {
-        // assume object headers are meant to be JSON stringified, i.e. their
+        // assume object headers are meant to be JSON stringified, i.e., their
         // content value in OpenAPI specification is 'application/json'
         mergedHeaders[key] = typeof value === 'object' ? JSON.stringify(value) : (value as string);
       }
@@ -202,7 +202,7 @@ export const mergeHeaders = (
 };
 
 export const createConfig = <T extends ClientOptions = ClientOptions>(
-  override: Config<Omit<ClientOptions, keyof T> & T> = {}
+  override: Config<Omit<ClientOptions, keyof T> & T> = {},
 ): Config<Omit<ClientOptions, keyof T> & T> => ({
   ...override,
 });

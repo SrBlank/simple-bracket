@@ -3,7 +3,7 @@ from datetime import datetime
 from heliclockter import datetime_utc
 
 from bracket.database import database
-from bracket.models.db.match import Match, MatchBody, MatchCreateBody
+from bracket.models.db.match import Match, MatchBody, MatchCreateBody, MatchStatus
 from bracket.models.db.tournament import Tournament
 from bracket.utils.id_types import (
     CourtId,
@@ -92,7 +92,8 @@ async def sql_update_match(match_id: MatchId, match: MatchBody, tournament: Tour
             custom_duration_minutes = :custom_duration_minutes,
             custom_margin_minutes = :custom_margin_minutes,
             duration_minutes = :duration_minutes,
-            margin_minutes = :margin_minutes
+            margin_minutes = :margin_minutes,
+            walkover = :walkover
         WHERE matches.id = :match_id
         RETURNING *
         """
@@ -209,6 +210,47 @@ async def sql_reschedule_match_and_determine_duration_and_margin(
         match.custom_margin_minutes,
         match.stage_item_input1_conflict,
         match.stage_item_input2_conflict,
+    )
+
+
+async def sql_set_match_status(match_id: MatchId, match_status: MatchStatus) -> None:
+    await database.execute(
+        query="UPDATE matches SET status = :status WHERE matches.id = :match_id",
+        values={"match_id": match_id, "status": match_status.value},
+    )
+
+
+async def sql_assign_match_to_court(
+    match_id: MatchId,
+    court_id: CourtId | None,
+    match_status: MatchStatus,
+    start_time: datetime_utc | None,
+    position_in_schedule: int | None,
+) -> None:
+    """
+    Used by the dynamic (no-clock) scheduler to place a match on a court (or pull it back into the
+    queue). Unlike `sql_reschedule_match` this also sets the match status and does not touch
+    durations/conflicts.
+    """
+    query = """
+        UPDATE matches
+        SET court_id = :court_id,
+            status = :status,
+            start_time = :start_time,
+            position_in_schedule = :position_in_schedule
+        WHERE matches.id = :match_id
+        """
+    await database.execute(
+        query=query,
+        values={
+            "match_id": match_id,
+            "court_id": court_id,
+            "status": match_status.value,
+            "start_time": (
+                datetime.fromisoformat(start_time.isoformat()) if start_time is not None else None
+            ),
+            "position_in_schedule": position_in_schedule,
+        },
     )
 
 

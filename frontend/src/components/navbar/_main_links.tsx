@@ -8,8 +8,6 @@ import {
   IconHome,
   IconSettings,
   IconSitemap,
-  IconTrophy,
-  IconUser,
   IconUsers,
   IconWand,
 } from '@tabler/icons-react';
@@ -107,16 +105,9 @@ export function TournamentLinks({ tournament_id }: any) {
       label: 'Seeding',
       link: `${tm_prefix}/seeding`,
     },
-    {
-      icon: IconTrophy,
-      label: capitalize(t('stage_title')),
-      link: `${tm_prefix}/stages`,
-    },
-    {
-      icon: IconUser,
-      label: capitalize(t('players_title')),
-      link: `${tm_prefix}/players`,
-    },
+    // Players are managed inline on the Teams page (every team lists and edits its own players),
+    // so the standalone Players tab is hidden to keep the simplified flow uncluttered. The
+    // /players route still works if linked to directly.
     {
       icon: IconUsers,
       label: capitalize(t('teams_title')),

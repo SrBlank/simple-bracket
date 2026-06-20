@@ -27,6 +27,28 @@ tournaments = Table(
     Column("dashboard_endpoint", String, nullable=True, index=True, unique=True),
     Column("players_can_be_in_multiple_teams", Boolean, nullable=False, server_default="f"),
     Column("auto_assign_courts", Boolean, nullable=False, server_default="f"),
+    Column(
+        "tournament_type",
+        Enum(
+            "GENERIC",
+            "PICKLEBALL",
+            name="tournament_type",
+        ),
+        nullable=False,
+        server_default="GENERIC",
+    ),
+    Column(
+        "scheduling_mode",
+        Enum(
+            "TIMED",
+            "DYNAMIC",
+            name="scheduling_mode",
+        ),
+        nullable=False,
+        server_default="TIMED",
+    ),
+    Column("court_auto_advance", Boolean, nullable=False, server_default="t"),
+    Column("show_player_names", Boolean, nullable=False, server_default="f"),
     Column("duration_minutes", Integer, nullable=False, server_default="15"),
     Column("margin_minutes", Integer, nullable=False, server_default="5"),
     Column(
@@ -139,6 +161,19 @@ matches = Table(
     Column("stage_item_input1_score", Integer, nullable=False),
     Column("stage_item_input2_score", Integer, nullable=False),
     Column("position_in_schedule", Integer, nullable=True),
+    Column(
+        "status",
+        Enum(
+            "PENDING",
+            "QUEUED",
+            "PLAYING",
+            "FINISHED",
+            name="match_status",
+        ),
+        nullable=False,
+        server_default="PENDING",
+    ),
+    Column("walkover", Boolean, nullable=False, server_default="f"),
 )
 
 teams = Table(

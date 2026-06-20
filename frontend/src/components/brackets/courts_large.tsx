@@ -26,11 +26,17 @@ export default function CourtsLarge({
   activeMatch,
   nextMatch,
   stageItemsLookup,
+  teamsLookup = null,
+  showPlayerNames = false,
+  showTime = true,
 }: {
   court: Court;
   activeMatch: MatchWithDetails | null;
   nextMatch: MatchWithDetails | null;
   stageItemsLookup: any;
+  teamsLookup?: any;
+  showPlayerNames?: boolean;
+  showTime?: boolean;
 }) {
   return (
     <Grid align="center" style={{ marginTop: '1rem' }} gutter="2rem">
@@ -44,6 +50,9 @@ export default function CourtsLarge({
               key={activeMatch.id}
               match={activeMatch}
               stageItemsLookup={stageItemsLookup}
+              teamsLookup={teamsLookup}
+              showPlayerNames={showPlayerNames}
+              showTime={showTime}
             />
           )}
         </Grid>
@@ -51,7 +60,14 @@ export default function CourtsLarge({
       <Grid.Col span={{ sm: 5 }}>
         <Grid>
           {nextMatch != null && (
-            <MatchLarge key={nextMatch.id} match={nextMatch} stageItemsLookup={stageItemsLookup} />
+            <MatchLarge
+              key={nextMatch.id}
+              match={nextMatch}
+              stageItemsLookup={stageItemsLookup}
+              teamsLookup={teamsLookup}
+              showPlayerNames={showPlayerNames}
+              showTime={showTime}
+            />
           )}
         </Grid>
       </Grid.Col>

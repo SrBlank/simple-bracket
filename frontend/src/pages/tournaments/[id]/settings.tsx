@@ -24,6 +24,7 @@ import { MdArchive } from 'react-icons/md';
 import { useNavigate } from 'react-router';
 import { SWRResponse } from 'swr';
 
+import { TournamentTypeFields } from '@components/forms/tournament_type_fields';
 import { assert_not_none } from '@components/utils/assert';
 import { DropzoneButton } from '@components/utils/file_upload';
 import { GenericSkeletonThreeRows } from '@components/utils/skeletons';
@@ -134,6 +135,10 @@ function GeneralTournamentForm({
       dashboard_endpoint: tournament.dashboard_endpoint,
       players_can_be_in_multiple_teams: tournament.players_can_be_in_multiple_teams,
       auto_assign_courts: tournament.auto_assign_courts,
+      tournament_type: tournament.tournament_type,
+      scheduling_mode: tournament.scheduling_mode,
+      court_auto_advance: tournament.court_auto_advance,
+      show_player_names: tournament.show_player_names,
       duration_minutes: tournament.duration_minutes,
       margin_minutes: tournament.margin_minutes,
     },
@@ -154,17 +159,20 @@ function GeneralTournamentForm({
       onSubmit={form.onSubmit(async (values) => {
         assert_not_none(values.club_id);
 
-        await updateTournament(
-          tournament.id,
-          values.name,
-          values.dashboard_public,
-          values.dashboard_endpoint,
-          values.players_can_be_in_multiple_teams,
-          values.auto_assign_courts,
-          values.start_time.toISOString(),
-          values.duration_minutes,
-          values.margin_minutes
-        );
+        await updateTournament(tournament.id, {
+          name: values.name,
+          dashboard_public: values.dashboard_public,
+          dashboard_endpoint: values.dashboard_endpoint,
+          players_can_be_in_multiple_teams: values.players_can_be_in_multiple_teams,
+          auto_assign_courts: values.auto_assign_courts,
+          tournament_type: values.tournament_type,
+          scheduling_mode: values.scheduling_mode,
+          court_auto_advance: values.court_auto_advance,
+          show_player_names: values.show_player_names,
+          start_time: values.start_time.toISOString(),
+          duration_minutes: values.duration_minutes,
+          margin_minutes: values.margin_minutes,
+        });
 
         await swrTournamentResponse.mutate();
       })}
@@ -189,44 +197,51 @@ function GeneralTournamentForm({
 
       <Fieldset legend={t('planning_of_matches_legend')} mt="lg" radius="md">
         <Text fz="sm">{t('planning_of_matches_description')}</Text>
-        <Grid>
-          <Grid.Col span={{ sm: 9 }}>
-            <DateTimePicker
-              rightSection={<IconCalendar size="1.1rem" stroke={1.5} />}
-              mx="auto"
-              {...form.getInputProps('start_time')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 3 }}>
-            <Button
-              fullWidth
-              color="indigo"
-              leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
-              onClick={() => {
-                form.setFieldValue('start_time', dayjs());
-              }}
-            >
-              {t('set_to_new_button')}
-            </Button>
-          </Grid.Col>
-        </Grid>
 
-        <Grid>
-          <Grid.Col span={{ sm: 6 }}>
-            <NumberInput
-              label={t('match_duration_label')}
-              mt="lg"
-              {...form.getInputProps('duration_minutes')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 6 }}>
-            <NumberInput
-              label={t('time_between_matches_label')}
-              mt="lg"
-              {...form.getInputProps('margin_minutes')}
-            />
-          </Grid.Col>
-        </Grid>
+        <TournamentTypeFields form={form} />
+
+        {form.values.scheduling_mode === 'TIMED' && (
+          <>
+            <Grid mt="md">
+              <Grid.Col span={{ sm: 9 }}>
+                <DateTimePicker
+                  rightSection={<IconCalendar size="1.1rem" stroke={1.5} />}
+                  mx="auto"
+                  {...form.getInputProps('start_time')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ sm: 3 }}>
+                <Button
+                  fullWidth
+                  color="indigo"
+                  leftSection={<IconCalendarTime size="1.1rem" stroke={1.5} />}
+                  onClick={() => {
+                    form.setFieldValue('start_time', dayjs());
+                  }}
+                >
+                  {t('set_to_new_button')}
+                </Button>
+              </Grid.Col>
+            </Grid>
+
+            <Grid>
+              <Grid.Col span={{ sm: 6 }}>
+                <NumberInput
+                  label={t('match_duration_label')}
+                  mt="lg"
+                  {...form.getInputProps('duration_minutes')}
+                />
+              </Grid.Col>
+              <Grid.Col span={{ sm: 6 }}>
+                <NumberInput
+                  label={t('time_between_matches_label')}
+                  mt="lg"
+                  {...form.getInputProps('margin_minutes')}
+                />
+              </Grid.Col>
+            </Grid>
+          </>
+        )}
       </Fieldset>
       <Fieldset legend={t('dashboard_settings_title')} mt="lg" radius="md">
         <Text fz="sm">{t('dashboard_link_label')}</Text>
@@ -288,11 +303,6 @@ function GeneralTournamentForm({
         <Checkbox
           label={t('miscellaneous_label')}
           {...form.getInputProps('players_can_be_in_multiple_teams', { type: 'checkbox' })}
-        />
-        <Checkbox
-          mt="md"
-          label={t('auto_assign_courts_label')}
-          {...form.getInputProps('auto_assign_courts', { type: 'checkbox' })}
         />
       </Fieldset>
 

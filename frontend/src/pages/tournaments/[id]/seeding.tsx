@@ -1,5 +1,17 @@
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
-import { Alert, Badge, Box, Button, Card, Center, Group, Stack, Text, Title } from '@mantine/core';
+import {
+  Alert,
+  Badge,
+  Box,
+  Button,
+  Card,
+  Center,
+  Group,
+  Modal,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { showNotification } from '@mantine/notifications';
 import {
   IconArrowsShuffle,
@@ -11,7 +23,6 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import bracketClasses from '@components/brackets/bracket_view.module.css';
 import {
   BracketRoundColumn,
   PreviewSlot,
@@ -20,11 +31,12 @@ import {
   nextPowerOfTwo,
   roundLabel,
 } from '@components/brackets/bracket_preview';
+import bracketClasses from '@components/brackets/bracket_view.module.css';
 import { NoContent } from '@components/no_content/empty_table_info';
-import { getTournamentIdFromRouter } from '@components/utils/util';
-import { FullTeamWithPlayers } from '@openapi';
+import { getTournamentIdFromRouter, responseIsValid } from '@components/utils/util';
+import { FullTeamWithPlayers, MatchWithDetails } from '@openapi';
 import TournamentLayout from '@pages/tournaments/_tournament_layout';
-import { getTeams, getTournamentById } from '@services/adapter';
+import { getStages, getTeams, getTournamentById } from '@services/adapter';
 import { autoGenerateBracket } from '@services/stage_item';
 
 // One bracket slot: a stable uid (so drag-and-drop keys survive reordering) and the team that
@@ -56,12 +68,32 @@ export default function SeedingPage() {
 
   const swrTeams = getTeams(tournamentData.id);
   const swrTournament = getTournamentById(tournamentData.id);
+  const swrStages = getStages(tournamentData.id, true);
   const teams: FullTeamWithPlayers[] = swrTeams.data != null ? swrTeams.data.data.teams : [];
   const dashboardEndpoint =
     swrTournament.data != null ? swrTournament.data.data.dashboard_endpoint : null;
 
+  // Regenerating the bracket deletes the existing one (matches + scores). Detect whether any
+  // real result has been recorded so we can warn before wiping a tournament in progress. A match
+  // counts as "played" only when both sides are real teams and a winner exists (excludes byes
+  // and unplayed 0–0 matches).
+  const existingMatches: MatchWithDetails[] = responseIsValid(swrStages)
+    ? (swrStages.data?.data ?? []).flatMap((stage: any) =>
+        stage.stage_items.flatMap((si: any) =>
+          si.rounds.flatMap((r: any) => r.matches as MatchWithDetails[])
+        )
+      )
+    : [];
+  const resultsExist = existingMatches.some(
+    (m) =>
+      m.stage_item_input1?.team_id != null &&
+      m.stage_item_input2?.team_id != null &&
+      (m.status === 'FINISHED' || m.stage_item_input1_score !== m.stage_item_input2_score)
+  );
+
   const [slots, setSlots] = useState<Slot[]>([]);
   const [busy, setBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Rebuild the bracket with standard seeding whenever the set of teams changes (so adding or
   // removing teams keeps the bracket valid). Manual arrangements before that are intentionally
@@ -97,6 +129,7 @@ export default function SeedingPage() {
   const randomize = () => setSlots(standardSlots(shuffled(teams.map((team) => team.id))));
 
   const generate = async () => {
+    setConfirmOpen(false);
     setBusy(true);
     const response = await autoGenerateBracket(tournamentData.id, {
       slots: slots.map((slot) => slot.teamId),
@@ -115,6 +148,15 @@ export default function SeedingPage() {
     }
   };
 
+  // Guard re-seeding: if results are already in, confirm before wiping them.
+  const handleGenerateClick = () => {
+    if (resultsExist) {
+      setConfirmOpen(true);
+    } else {
+      generate();
+    }
+  };
+
   if (teamCount < 2) {
     return (
       <TournamentLayout tournament_id={tournamentData.id}>
@@ -129,6 +171,29 @@ export default function SeedingPage() {
 
   return (
     <TournamentLayout tournament_id={tournamentData.id}>
+      <Modal
+        opened={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Regenerate bracket?"
+        centered
+      >
+        <Stack>
+          <Text size="sm">
+            This tournament already has recorded results. Regenerating the bracket will{' '}
+            <b>delete every match and score</b> and rebuild it from the seeding below. This cannot
+            be undone.
+          </Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={generate} loading={busy}>
+              Erase results &amp; regenerate
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       <Group justify="space-between" mb="md" align="flex-end">
         <Title>Seeding</Title>
         <Group>
@@ -148,7 +213,12 @@ export default function SeedingPage() {
           >
             Randomize
           </Button>
-          <Button color="green" leftSection={<IconCheck size={18} />} onClick={generate} loading={busy}>
+          <Button
+            color="green"
+            leftSection={<IconCheck size={18} />}
+            onClick={handleGenerateClick}
+            loading={busy}
+          >
             Generate bracket
           </Button>
         </Group>
@@ -164,6 +234,13 @@ export default function SeedingPage() {
         <Alert color="yellow" variant="light" mb="md">
           A match has two byes, which would let a team advance a round without playing. Move a team
           into that spot or use Standard seeding.
+        </Alert>
+      )}
+
+      {resultsExist && (
+        <Alert color="red" variant="light" mb="md">
+          This tournament already has recorded results. Regenerating the bracket will erase all
+          matches and scores — you'll be asked to confirm first.
         </Alert>
       )}
 

@@ -596,6 +596,15 @@
               }
             ],
             "title": "Start Time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatus",
+            "default": "PENDING"
+          },
+          "walkover": {
+            "default": false,
+            "title": "Walkover",
+            "type": "boolean"
           }
         },
         "required": [
@@ -612,6 +621,8 @@
           "court_id",
           "stage_item_input1_conflict",
           "stage_item_input2_conflict",
+          "status",
+          "walkover",
           "stage_item_input1_id",
           "stage_item_input2_id",
           "stage_item_input1_winner_from_match_id",
@@ -621,6 +632,19 @@
           "stage_item_input2"
         ],
         "title": "Match",
+        "type": "object"
+      },
+      "MatchAssignCourtBody": {
+        "properties": {
+          "court_id": {
+            "title": "Court Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "court_id"
+        ],
+        "title": "MatchAssignCourtBody",
         "type": "object"
       },
       "MatchBody": {
@@ -671,6 +695,11 @@
             "default": 0,
             "title": "Stage Item Input2 Score",
             "type": "integer"
+          },
+          "walkover": {
+            "default": false,
+            "title": "Walkover",
+            "type": "boolean"
           }
         },
         "required": [
@@ -679,7 +708,8 @@
           "stage_item_input2_score",
           "court_id",
           "custom_duration_minutes",
-          "custom_margin_minutes"
+          "custom_margin_minutes",
+          "walkover"
         ],
         "title": "MatchBody",
         "type": "object"
@@ -784,6 +814,17 @@
         ],
         "title": "MatchRescheduleBody",
         "type": "object"
+      },
+      "MatchStatus": {
+        "description": "Lifecycle of a match in DYNAMIC scheduling mode (in TIMED mode it is informational only):\n\nPENDING  - not ready to play yet (waiting on a feeder match, or a bye), or not queued.\nQUEUED   - both teams are known and it is waiting for a free court.\nPLAYING  - assigned to a court and in progress (or \"on deck\" on that court).\nFINISHED - a result has been recorded.",
+        "enum": [
+          "PENDING",
+          "QUEUED",
+          "PLAYING",
+          "FINISHED"
+        ],
+        "title": "MatchStatus",
+        "type": "string"
       },
       "MatchWithDetails": {
         "description": "MatchWithDetails has zero or one defined stage item inputs, but not both.",
@@ -968,6 +1009,15 @@
               }
             ],
             "title": "Start Time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatus",
+            "default": "PENDING"
+          },
+          "walkover": {
+            "default": false,
+            "title": "Walkover",
+            "type": "boolean"
           }
         },
         "required": [
@@ -984,6 +1034,8 @@
           "court_id",
           "stage_item_input1_conflict",
           "stage_item_input2_conflict",
+          "status",
+          "walkover",
           "stage_item_input1_id",
           "stage_item_input2_id",
           "stage_item_input1_winner_from_match_id",
@@ -1172,6 +1224,15 @@
               }
             ],
             "title": "Start Time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/MatchStatus",
+            "default": "PENDING"
+          },
+          "walkover": {
+            "default": false,
+            "title": "Walkover",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1188,6 +1249,8 @@
           "court_id",
           "stage_item_input1_conflict",
           "stage_item_input2_conflict",
+          "status",
+          "walkover",
           "stage_item_input1_id",
           "stage_item_input2_id",
           "stage_item_input1_winner_from_match_id",
@@ -1631,6 +1694,15 @@
         ],
         "title": "RoundWithMatches",
         "type": "object"
+      },
+      "SchedulingMode": {
+        "description": "TIMED   - matches are laid out on a clock with start times (the original behavior).\nDYNAMIC - no clock: matches sit in a queue and are pulled onto a court the moment one frees\n          up. Start times are optional metadata only.",
+        "enum": [
+          "TIMED",
+          "DYNAMIC"
+        ],
+        "title": "SchedulingMode",
+        "type": "string"
       },
       "SingleCourtResponse": {
         "properties": {
@@ -2611,6 +2683,11 @@
             "title": "Club Id",
             "type": "integer"
           },
+          "court_auto_advance": {
+            "default": true,
+            "title": "Court Auto Advance",
+            "type": "boolean"
+          },
           "created": {
             "format": "date-time",
             "title": "Created",
@@ -2664,6 +2741,15 @@
             "title": "Players Can Be In Multiple Teams",
             "type": "boolean"
           },
+          "scheduling_mode": {
+            "$ref": "#/components/schemas/SchedulingMode",
+            "default": "TIMED"
+          },
+          "show_player_names": {
+            "default": false,
+            "title": "Show Player Names",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
@@ -2672,6 +2758,10 @@
           "status": {
             "$ref": "#/components/schemas/TournamentStatus",
             "default": "OPEN"
+          },
+          "tournament_type": {
+            "$ref": "#/components/schemas/TournamentType",
+            "default": "GENERIC"
           }
         },
         "required": [
@@ -2686,6 +2776,10 @@
           "logo_path",
           "players_can_be_in_multiple_teams",
           "auto_assign_courts",
+          "tournament_type",
+          "scheduling_mode",
+          "court_auto_advance",
+          "show_player_names",
           "status",
           "id"
         ],
@@ -2701,6 +2795,11 @@
           "club_id": {
             "title": "Club Id",
             "type": "integer"
+          },
+          "court_auto_advance": {
+            "default": true,
+            "title": "Court Auto Advance",
+            "type": "boolean"
           },
           "dashboard_endpoint": {
             "anyOf": [
@@ -2733,10 +2832,23 @@
             "title": "Players Can Be In Multiple Teams",
             "type": "boolean"
           },
+          "scheduling_mode": {
+            "$ref": "#/components/schemas/SchedulingMode",
+            "default": "TIMED"
+          },
+          "show_player_names": {
+            "default": false,
+            "title": "Show Player Names",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
             "type": "string"
+          },
+          "tournament_type": {
+            "$ref": "#/components/schemas/TournamentType",
+            "default": "GENERIC"
           }
         },
         "required": [
@@ -2746,6 +2858,10 @@
           "dashboard_endpoint",
           "players_can_be_in_multiple_teams",
           "auto_assign_courts",
+          "tournament_type",
+          "scheduling_mode",
+          "court_auto_advance",
+          "show_player_names",
           "duration_minutes",
           "margin_minutes",
           "club_id"
@@ -2785,10 +2901,24 @@
         "title": "TournamentStatus",
         "type": "string"
       },
+      "TournamentType": {
+        "description": "A preset that bundles sensible defaults at creation time. PICKLEBALL turns on player-name\ndisplay and the dynamic (no-clock) scheduling mode by default; every individual setting\nstays overridable in the tournament settings afterwards.",
+        "enum": [
+          "GENERIC",
+          "PICKLEBALL"
+        ],
+        "title": "TournamentType",
+        "type": "string"
+      },
       "TournamentUpdateBody": {
         "properties": {
           "auto_assign_courts": {
             "title": "Auto Assign Courts",
+            "type": "boolean"
+          },
+          "court_auto_advance": {
+            "default": true,
+            "title": "Court Auto Advance",
             "type": "boolean"
           },
           "dashboard_endpoint": {
@@ -2822,10 +2952,23 @@
             "title": "Players Can Be In Multiple Teams",
             "type": "boolean"
           },
+          "scheduling_mode": {
+            "$ref": "#/components/schemas/SchedulingMode",
+            "default": "TIMED"
+          },
+          "show_player_names": {
+            "default": false,
+            "title": "Show Player Names",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
             "type": "string"
+          },
+          "tournament_type": {
+            "$ref": "#/components/schemas/TournamentType",
+            "default": "GENERIC"
           }
         },
         "required": [
@@ -2835,6 +2978,10 @@
           "dashboard_endpoint",
           "players_can_be_in_multiple_teams",
           "auto_assign_courts",
+          "tournament_type",
+          "scheduling_mode",
+          "court_auto_advance",
+          "show_player_names",
           "duration_minutes",
           "margin_minutes"
         ],
@@ -4176,6 +4323,73 @@
         ]
       }
     },
+    "/tournaments/{tournament_id}/matches/{match_id}/assign_court": {
+      "post": {
+        "description": "Manually place a (queued) match onto a court. Used in suggest-and-confirm mode and for manual\noverrides in dynamic scheduling.",
+        "operationId": "assign_match_to_court_tournaments__tournament_id__matches__match_id__assign_court_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tournament_id",
+            "required": true,
+            "schema": {
+              "title": "Tournament Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "match_id",
+            "required": true,
+            "schema": {
+              "title": "Match Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchAssignCourtBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Assign Match To Court",
+        "tags": [
+          "Matches"
+        ]
+      }
+    },
     "/tournaments/{tournament_id}/matches/{match_id}/reschedule": {
       "post": {
         "operationId": "reschedule_match_tournaments__tournament_id__matches__match_id__reschedule_post",
@@ -4435,7 +4649,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessResponse"
+                  "$ref": "#/components/schemas/SinglePlayerResponse"
                 }
               }
             },

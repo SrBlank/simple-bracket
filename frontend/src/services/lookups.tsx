@@ -11,8 +11,8 @@ import {
 } from '@openapi';
 import { getTeams } from './adapter';
 
-export function getTeamsLookup(tournamentId: number) {
-  const swrTeamsResponse: SWRResponse = getTeams(tournamentId);
+export function getTeamsLookup(tournamentId: number | null | undefined) {
+  const swrTeamsResponse: SWRResponse = getTeams(tournamentId ?? undefined);
   const isResponseValid = responseIsValid(swrTeamsResponse);
 
   if (!isResponseValid) {

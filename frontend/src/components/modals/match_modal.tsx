@@ -1,25 +1,24 @@
 import {
   Button,
-  Center,
-  Checkbox,
   Divider,
-  Grid,
+  Group,
   Modal,
   NumberInput,
   SegmentedControl,
+  Select,
   Text,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SWRResponse } from 'swr';
 
 import DeleteButton from '@components/buttons/delete';
 import { formatMatchInput1, formatMatchInput2 } from '@components/utils/match';
 import { TournamentMinimal } from '@components/utils/tournament';
-import { MatchWithDetails, RoundWithMatches, StagesWithStageItemsResponse } from '@openapi';
+import { Court, MatchWithDetails, RoundWithMatches, StagesWithStageItemsResponse } from '@openapi';
+import { getCourts, getTournamentById } from '@services/adapter';
 import { getMatchLookup, getStageItemLookup } from '@services/lookups';
-import { deleteMatch, updateMatch } from '@services/match';
+import { assignMatchToCourt, deleteMatch, updateMatch } from '@services/match';
 
 function MatchDeleteButton({
   tournamentData,
@@ -68,30 +67,23 @@ function MatchModalForm({
   }
 
   const { t } = useTranslation();
+  const swrCourtsResponse = getCourts(tournamentData.id);
+  const swrTournamentResponse = getTournamentById(tournamentData.id);
+  const courts: Court[] = swrCourtsResponse.data?.data ?? [];
+  const isDynamic = swrTournamentResponse.data?.data?.scheduling_mode === 'DYNAMIC';
+
   const form = useForm({
     initialValues: {
       stage_item_input1_score: match.stage_item_input1_score,
       stage_item_input2_score: match.stage_item_input2_score,
-      custom_duration_minutes: match.custom_duration_minutes,
-      custom_margin_minutes: match.custom_margin_minutes,
+      court_id: match.court_id != null ? `${match.court_id}` : null,
     },
 
     validate: {
       stage_item_input1_score: (value) => (value >= 0 ? null : t('negative_score_validation')),
       stage_item_input2_score: (value) => (value >= 0 ? null : t('negative_score_validation')),
-      custom_duration_minutes: (value) =>
-        value == null || value >= 0 ? null : t('negative_match_duration_validation'),
-      custom_margin_minutes: (value) =>
-        value == null || value >= 0 ? null : t('negative_match_margin_validation'),
     },
   });
-
-  const [customDurationEnabled, setCustomDurationEnabled] = useState(
-    match.custom_duration_minutes != null
-  );
-  const [customMarginEnabled, setCustomMarginEnabled] = useState(
-    match.custom_margin_minutes != null
-  );
 
   const stageItemsLookup = getStageItemLookup(swrStagesResponse);
   const matchesLookup = getMatchLookup(swrStagesResponse);
@@ -101,8 +93,7 @@ function MatchModalForm({
 
   // The winner is whichever side has the higher score; the bracket advances that team. The
   // selector below lets the organizer declare a winner directly (e.g. for a walkover or to
-  // break a tie) by nudging the score so the chosen side leads, without discarding a real
-  // score that already reflects the result.
+  // break a tie) by nudging the score so the chosen side leads.
   const score1 = form.values.stage_item_input1_score;
   const score2 = form.values.stage_item_input2_score;
   const currentWinner = score1 > score2 ? 'team1' : score2 > score1 ? 'team2' : '';
@@ -117,27 +108,54 @@ function MatchModalForm({
 
   const bothTeamsPresent = match.stage_item_input1 != null && match.stage_item_input2 != null;
 
+  // Persist the entered result (and court). Editing a finished match re-runs here, which
+  // re-propagates the winner into later rounds — so a wrong winner can always be corrected.
+  const saveResult = async (
+    score1Override?: number,
+    score2Override?: number,
+    walkover: boolean = false
+  ) => {
+    const finalScore1 = score1Override ?? form.values.stage_item_input1_score;
+    const finalScore2 = score2Override ?? form.values.stage_item_input2_score;
+    const courtId = form.values.court_id != null ? parseInt(form.values.court_id, 10) : null;
+
+    await updateMatch(tournamentData.id, match.id, {
+      round_id: match.round_id,
+      stage_item_input1_score: finalScore1,
+      stage_item_input2_score: finalScore2,
+      court_id: courtId,
+      custom_duration_minutes: match.custom_duration_minutes ?? null,
+      custom_margin_minutes: match.custom_margin_minutes ?? null,
+      walkover,
+    });
+
+    // In dynamic mode, putting a match on a court should also mark it as playing (unless it just
+    // got a result, in which case the backend already finished it).
+    if (isDynamic && courtId != null && finalScore1 === finalScore2) {
+      await assignMatchToCourt(tournamentData.id, match.id, courtId);
+    }
+
+    await swrStagesResponse.mutate();
+    if (swrUpcomingMatchesResponse != null) await swrUpcomingMatchesResponse.mutate();
+    setOpened(false);
+  };
+
   return (
     <>
-      <form
-        onSubmit={form.onSubmit(async (values) => {
-          const updatedMatch = {
-            id: match.id,
-            round_id: match.round_id,
-            stage_item_input1_score: values.stage_item_input1_score,
-            stage_item_input2_score: values.stage_item_input2_score,
-            court_id: match.court_id || null,
-            custom_duration_minutes: customDurationEnabled ? values.custom_duration_minutes : null,
-            custom_margin_minutes: customMarginEnabled ? values.custom_margin_minutes : null,
-          };
-          await updateMatch(tournamentData.id, match.id, updatedMatch);
-          await swrStagesResponse.mutate();
-          if (swrUpcomingMatchesResponse != null) await swrUpcomingMatchesResponse.mutate();
-          setOpened(false);
-        })}
-      >
+      <form onSubmit={form.onSubmit(async () => saveResult(undefined, undefined, match.walkover))}>
+        {courts.length > 0 && (
+          <Select
+            label="Court"
+            placeholder="Not on a court yet"
+            clearable
+            data={courts.map((court) => ({ value: `${court.id}`, label: court.name }))}
+            {...form.getInputProps('court_id')}
+          />
+        )}
+
         <NumberInput
           withAsterisk
+          mt="lg"
           label={`${t('score_of_label')} ${team1Name}`}
           placeholder={`${t('score_of_label')} ${team1Name}`}
           {...form.getInputProps('stage_item_input1_score')}
@@ -169,64 +187,29 @@ function MatchModalForm({
           </>
         )}
 
-        <Divider mt="lg" />
-
-        <Text size="sm" mt="lg">
-          {t('custom_match_duration_label')}
-        </Text>
-        <Grid align="center">
-          <Grid.Col span={{ sm: 8 }}>
-            <NumberInput
-              disabled={!customDurationEnabled}
-              rightSection={<Text>{t('minutes')}</Text>}
-              placeholder={`${match.duration_minutes}`}
-              rightSectionWidth={92}
-              {...form.getInputProps('custom_duration_minutes')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 4 }}>
-            <Center>
-              <Checkbox
-                checked={customDurationEnabled}
-                label={t('customize_checkbox_label')}
-                onChange={(event) => {
-                  setCustomDurationEnabled(event.currentTarget.checked);
-                }}
-              />
-            </Center>
-          </Grid.Col>
-        </Grid>
-
-        <Text size="sm" mt="lg">
-          {t('custom_match_margin_label')}
-        </Text>
-        <Grid align="center">
-          <Grid.Col span={{ sm: 8 }}>
-            <NumberInput
-              disabled={!customMarginEnabled}
-              placeholder={`${match.margin_minutes}`}
-              rightSection={<Text>{t('minutes')}</Text>}
-              rightSectionWidth={92}
-              {...form.getInputProps('custom_margin_minutes')}
-            />
-          </Grid.Col>
-          <Grid.Col span={{ sm: 4 }}>
-            <Center>
-              <Checkbox
-                checked={customMarginEnabled}
-                label={t('customize_checkbox_label')}
-                onChange={(event) => {
-                  setCustomMarginEnabled(event.currentTarget.checked);
-                }}
-              />
-            </Center>
-          </Grid.Col>
-        </Grid>
-
         <Button fullWidth style={{ marginTop: 20 }} color="green" type="submit">
           {t('save_button')}
         </Button>
       </form>
+
+      {bothTeamsPresent && (
+        <>
+          <Divider my="lg" label="No-show / walkover" labelPosition="center" />
+          <Text size="xs" c="dimmed" mb="xs">
+            Advance a team without playing (e.g. the other team didn't show up). This is recorded as
+            a walkover, not a score.
+          </Text>
+          <Group grow>
+            <Button variant="light" color="orange" onClick={() => saveResult(1, 0, true)}>
+              {team1Name} wins by walkover
+            </Button>
+            <Button variant="light" color="orange" onClick={() => saveResult(0, 1, true)}>
+              {team2Name} wins by walkover
+            </Button>
+          </Group>
+        </>
+      )}
+
       {round && round.is_draft && (
         <MatchDeleteButton
           swrStagesResponse={swrStagesResponse}

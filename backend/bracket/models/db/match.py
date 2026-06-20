@@ -1,4 +1,5 @@
 from decimal import Decimal
+from enum import auto
 
 from heliclockter import datetime_utc, timedelta
 from pydantic import BaseModel
@@ -7,7 +8,23 @@ from bracket.models.db.court import Court
 from bracket.models.db.shared import BaseModelORM
 from bracket.models.db.stage_item_inputs import StageItemInput, StageItemInputEmpty
 from bracket.utils.id_types import CourtId, MatchId, RoundId, StageItemInputId
-from bracket.utils.types import assert_some
+from bracket.utils.types import EnumAutoStr, assert_some
+
+
+class MatchStatus(EnumAutoStr):
+    """
+    Lifecycle of a match in DYNAMIC scheduling mode (in TIMED mode it is informational only):
+
+    PENDING  - not ready to play yet (waiting on a feeder match, or a bye), or not queued.
+    QUEUED   - both teams are known and it is waiting for a free court.
+    PLAYING  - assigned to a court and in progress (or "on deck" on that court).
+    FINISHED - a result has been recorded.
+    """
+
+    PENDING = auto()
+    QUEUED = auto()
+    PLAYING = auto()
+    FINISHED = auto()
 
 
 class MatchBaseInsertable(BaseModelORM):
@@ -24,6 +41,10 @@ class MatchBaseInsertable(BaseModelORM):
     court_id: CourtId | None = None
     stage_item_input1_conflict: bool
     stage_item_input2_conflict: bool
+    status: MatchStatus = MatchStatus.PENDING
+    # True when the result is a walkover (the losing side didn't show up) rather than a played
+    # game, so the UI can label it "Walkover" instead of showing a score.
+    walkover: bool = False
 
     @property
     def end_time(self) -> datetime_utc:
@@ -106,6 +127,7 @@ class MatchBody(BaseModelORM):
     court_id: CourtId | None = None
     custom_duration_minutes: int | None = None
     custom_margin_minutes: int | None = None
+    walkover: bool = False
 
 
 class MatchCreateBodyFrontend(BaseModelORM):
@@ -129,6 +151,10 @@ class MatchRescheduleBody(BaseModelORM):
     old_position: int
     new_court_id: CourtId
     new_position: int
+
+
+class MatchAssignCourtBody(BaseModelORM):
+    court_id: CourtId
 
 
 class MatchFilter(BaseModel):

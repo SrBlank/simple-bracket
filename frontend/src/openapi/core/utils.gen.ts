@@ -57,7 +57,7 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer) => {
             style,
             value: value as Record<string, unknown>,
             valueOnly: true,
-          })
+          }),
         );
         continue;
       }
@@ -68,13 +68,13 @@ export const defaultPathSerializer = ({ path, url: _url }: PathSerializer) => {
           `;${serializePrimitiveParam({
             name,
             value: value as string,
-          })}`
+          })}`,
         );
         continue;
       }
 
       const replaceValue = encodeURIComponent(
-        style === 'label' ? `.${value as string}` : (value as string)
+        style === 'label' ? `.${value as string}` : (value as string),
       );
       url = url.replace(match, replaceValue);
     }
@@ -126,7 +126,7 @@ export function getValidRequestBody(options: {
       return hasSerializedBody ? options.serializedBody : null;
     }
 
-    // not all clients implement a serializedBody property (i.e. client-axios)
+    // not all clients implement a serializedBody property (i.e., client-axios)
     return options.body !== '' ? options.body : null;
   }
 

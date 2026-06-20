@@ -8,6 +8,17 @@ bracket, and start entering scores. Players can follow along on a public, read-o
 ## Features
 
 - **No login** — the app opens straight into your tournaments.
+- **Tournament presets**: pick a type when creating a tournament (e.g. **Pickleball (doubles)** or
+  **Generic**). A preset just seeds sensible defaults — every setting stays editable afterwards.
+- **Dynamic court scheduling (no clock)**: in dynamic mode there are no start times. Ready matches
+  queue up and drop onto a court the moment one frees up — when a game ends, the next one starts.
+  You can have the next match start **automatically**, or have the freed court **suggest** the next
+  match for you to confirm. (Classic **timed** scheduling is still available.)
+- **Player names + court on the bracket**: the public bracket and the big court board can show each
+  team's players and which court they're on, so players self-route without being chased down.
+- **"Find my match"**: on the public bracket, players type their name to see their next match, the
+  court, and roughly how many matches until they're up.
+- **Scales to a TV**: the public bracket has zoom / fit-to-screen controls for large brackets.
 - **Guided setup wizard**: add teams → add courts → generate the bracket.
 - **Any number of teams** (5, 11, 13, …): the bracket is padded to the next power of two with
   **standard seeding**, and byes go only to the top seeds in round 1 — no team ever skips ahead.
@@ -73,6 +84,24 @@ credentials; you can override them with the `VITE_ORGANIZER_EMAIL` / `VITE_ORGAN
 build-time variables.
 
 ## Development
+
+### Quick start (no Docker build)
+
+For local development you don't need to rebuild the Docker image on every change. `dev.sh` runs
+**only** Postgres in a container and starts the backend and frontend directly on the host with
+hot-reload:
+
+```bash
+./dev.sh
+```
+
+Then open the Vite dev server (**http://localhost:5173**); it talks to the backend on
+**http://localhost:8400**. Requires `docker`, [`uv`](https://docs.astral.sh/uv/), and
+[`pnpm`](https://pnpm.io/) on the host. Stop the app with `Ctrl-C`; the database container keeps
+running (stop it with `docker stop bracket-dev-db`). For production, keep using
+`docker compose up -d --build` as above.
+
+### Manual commands
 
 **Backend** (Python, [FastAPI](https://fastapi.tiangolo.com)) — uses [`uv`](https://docs.astral.sh/uv/):
 

@@ -4,14 +4,15 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SingleEliminationBracket } from '@components/brackets/bracket_view';
+import { FindMyMatch } from '@components/dashboard/find_my_match';
 import { DashboardFooter } from '@components/dashboard/footer';
 import { DoubleHeader, getTournamentHeadTitle } from '@components/dashboard/layout';
 import { NoContent } from '@components/no_content/empty_table_info';
 import { responseIsValid, setTitle } from '@components/utils/util';
-import { StageItemWithRounds } from '@openapi';
+import { MatchWithDetails, StageItemWithRounds } from '@openapi';
 import { getStagesLive } from '@services/adapter';
 import { getTournamentResponseByEndpointName } from '@services/dashboard';
-import { getMatchLookup, getStageItemLookup } from '@services/lookups';
+import { getMatchLookup, getStageItemLookup, getTeamsLookup } from '@services/lookups';
 
 export default function DashboardBracketPage() {
   const { t } = useTranslation();
@@ -19,6 +20,7 @@ export default function DashboardBracketPage() {
   const tournamentValid = !React.isValidElement(tournamentDataFull);
 
   const swrStagesResponse = getStagesLive(tournamentValid ? tournamentDataFull.id : null);
+  const teamsLookup = getTeamsLookup(tournamentValid ? tournamentDataFull.id : null);
 
   if (!tournamentValid) {
     return tournamentDataFull;
@@ -30,6 +32,9 @@ export default function DashboardBracketPage() {
 
   const stageItemsLookup = getStageItemLookup(swrStagesResponse);
   const matchesLookup = getMatchLookup(swrStagesResponse);
+  const showPlayerNames = tournamentDataFull.show_player_names;
+  const isDynamic = tournamentDataFull.scheduling_mode === 'DYNAMIC';
+  const allMatches: MatchWithDetails[] = Object.values(matchesLookup).map((x: any) => x.match);
 
   const eliminationStageItems: StageItemWithRounds[] = (swrStagesResponse.data?.data ?? [])
     .flatMap((stage: any) => stage.stage_items)
@@ -39,7 +44,16 @@ export default function DashboardBracketPage() {
     <>
       <DoubleHeader tournamentData={tournamentDataFull} />
       <Center>
-        <Stack style={{ maxWidth: '80rem', width: '100%' }} px="1rem" gap="xl">
+        <Stack style={{ width: '100%' }} px="1rem" gap="xl">
+          {eliminationStageItems.length > 0 && (
+            <FindMyMatch
+              matches={allMatches}
+              teamsLookup={teamsLookup}
+              stageItemsLookup={stageItemsLookup}
+              matchesLookup={matchesLookup}
+              isDynamic={isDynamic}
+            />
+          )}
           {eliminationStageItems.length < 1 ? (
             <NoContent
               title="No bracket yet"
@@ -56,6 +70,9 @@ export default function DashboardBracketPage() {
                   stageItem={stageItem}
                   stageItemsLookup={stageItemsLookup}
                   matchesLookup={matchesLookup}
+                  teamsLookup={teamsLookup}
+                  showPlayerNames={showPlayerNames}
+                  zoomable
                 />
               </Stack>
             ))

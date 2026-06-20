@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from heliclockter import datetime_utc
 from starlette import status
 
 from bracket.config import config
@@ -13,26 +14,35 @@ from bracket.logic.ranking.calculation import (
     recalculate_ranking_for_stage_item,
 )
 from bracket.logic.ranking.elimination import update_inputs_in_subsequent_elimination_rounds
+from bracket.logic.scheduling.dynamic import reconcile_dynamic_scheduling
 from bracket.logic.scheduling.upcoming_matches import (
     get_draft_round_in_stage_item,
     get_upcoming_matches_for_swiss,
 )
 from bracket.models.db.match import (
     Match,
+    MatchAssignCourtBody,
     MatchBody,
     MatchCreateBody,
     MatchCreateBodyFrontend,
     MatchFilter,
     MatchRescheduleBody,
+    MatchStatus,
 )
 from bracket.models.db.stage_item import StageType
-from bracket.models.db.tournament import Tournament
+from bracket.models.db.tournament import SchedulingMode, Tournament
 from bracket.models.db.user import UserPublic
 from bracket.routes.auth import user_authenticated_for_tournament
 from bracket.routes.models import SingleMatchResponse, SuccessResponse, UpcomingMatchesResponse
 from bracket.routes.util import disallow_archived_tournament, match_dependency
 from bracket.sql.courts import get_all_courts_in_tournament
-from bracket.sql.matches import sql_create_match, sql_delete_match, sql_update_match
+from bracket.sql.matches import (
+    sql_assign_match_to_court,
+    sql_create_match,
+    sql_delete_match,
+    sql_set_match_status,
+    sql_update_match,
+)
 from bracket.sql.rounds import get_round_by_id
 from bracket.sql.stage_items import get_stage_item
 from bracket.sql.stages import get_full_tournament_details
@@ -132,8 +142,36 @@ async def schedule_matches(
     _: UserPublic = Depends(user_authenticated_for_tournament),
     __: Tournament = Depends(disallow_archived_tournament),
 ) -> SuccessResponse:
-    stages = await get_full_tournament_details(tournament_id)
-    await schedule_all_unscheduled_matches(tournament_id, stages)
+    tournament = await sql_get_tournament(tournament_id)
+    if tournament.scheduling_mode is SchedulingMode.DYNAMIC:
+        # Dynamic mode: deal ready matches onto the courts and queue the rest. No clock involved.
+        await reconcile_dynamic_scheduling(tournament_id, fill_courts=True)
+    else:
+        stages = await get_full_tournament_details(tournament_id)
+        await schedule_all_unscheduled_matches(tournament_id, stages)
+    return SuccessResponse()
+
+
+@router.post(
+    "/tournaments/{tournament_id}/matches/{match_id}/assign_court",
+    response_model=SuccessResponse,
+)
+async def assign_match_to_court(
+    tournament_id: TournamentId,
+    match_id: MatchId,
+    body: MatchAssignCourtBody,
+    _: UserPublic = Depends(user_authenticated_for_tournament),
+    __: Tournament = Depends(disallow_archived_tournament),
+    match: Match = Depends(match_dependency),
+) -> SuccessResponse:
+    """
+    Manually place a (queued) match onto a court. Used in suggest-and-confirm mode and for manual
+    overrides in dynamic scheduling.
+    """
+    await check_foreign_keys_belong_to_tournament(body, tournament_id)
+    await sql_assign_match_to_court(
+        match_id, body.court_id, MatchStatus.PLAYING, datetime_utc.now(), match.position_in_schedule
+    )
     return SuccessResponse()
 
 
@@ -181,5 +219,15 @@ async def update_match_by_id(
 
     if stage_item.type == StageType.SINGLE_ELIMINATION:
         await update_inputs_in_subsequent_elimination_rounds(round_.id, stage_item, {match_id})
+
+    # Dynamic mode: a recorded result frees the court. Mark the match finished and (optionally)
+    # pull the next ready match onto the court that just opened up.
+    if tournament.scheduling_mode is SchedulingMode.DYNAMIC:
+        has_winner = match_body.stage_item_input1_score != match_body.stage_item_input2_score
+        if has_winner:
+            await sql_set_match_status(match_id, MatchStatus.FINISHED)
+            await reconcile_dynamic_scheduling(
+                tournament_id, fill_courts=tournament.court_auto_advance
+            )
 
     return SuccessResponse()

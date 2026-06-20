@@ -15,7 +15,7 @@ import { responseIsValid, setTitle } from '@components/utils/util';
 import { Court, MatchWithDetails } from '@openapi';
 import { getCourtsLive, getStagesLive } from '@services/adapter';
 import { getTournamentResponseByEndpointName } from '@services/dashboard';
-import { getMatchLookupByCourt, getStageItemLookup } from '@services/lookups';
+import { getMatchLookupByCourt, getStageItemLookup, getTeamsLookup } from '@services/lookups';
 
 export default function CourtsPresentPage() {
   const { t } = useTranslation();
@@ -24,6 +24,7 @@ export default function CourtsPresentPage() {
 
   const swrCourtsResponse = getCourtsLive(tournamentValid ? tournamentDataFull.id : null);
   const swrStagesResponse = getStagesLive(tournamentValid ? tournamentDataFull.id : null);
+  const teamsLookup = getTeamsLookup(tournamentValid ? tournamentDataFull.id : null);
 
   if (!tournamentValid) {
     return tournamentDataFull;
@@ -37,6 +38,9 @@ export default function CourtsPresentPage() {
 
   const stageItemsLookup = getStageItemLookup(swrStagesResponse);
 
+  const isDynamic = tournamentDataFull.scheduling_mode === 'DYNAMIC';
+  const showPlayerNames = tournamentDataFull.show_player_names;
+
   const courts = responseIsValid(swrCourtsResponse) ? swrCourtsResponse.data.data : [];
   const matchesByCourtId = responseIsValid(swrStagesResponse)
     ? getMatchLookupByCourt(swrStagesResponse)
@@ -44,12 +48,17 @@ export default function CourtsPresentPage() {
 
   const rows = courts.map((court: Court) => {
     const matchesForCourt = matchesByCourtId[court.id] || [];
-    const activeMatch = matchesForCourt.filter((m: MatchWithDetails) => isMatchHappening(m))[0];
-    const futureMatch = matchesForCourt
-      .filter((m: MatchWithDetails) => isMatchInTheFuture(m))
-      .sort((m1: MatchWithDetails, m2: MatchWithDetails) =>
-        (m1.start_time || '') > (m2.start_time || '') ? 1 : -1
-      )[0];
+    // In dynamic mode the lifecycle status is authoritative; in timed mode fall back to the clock.
+    const activeMatch = isDynamic
+      ? matchesForCourt.filter((m: MatchWithDetails) => m.status === 'PLAYING')[0]
+      : matchesForCourt.filter((m: MatchWithDetails) => isMatchHappening(m))[0];
+    const futureMatch = isDynamic
+      ? null
+      : matchesForCourt
+          .filter((m: MatchWithDetails) => isMatchInTheFuture(m))
+          .sort((m1: MatchWithDetails, m2: MatchWithDetails) =>
+            (m1.start_time || '') > (m2.start_time || '') ? 1 : -1
+          )[0];
 
     return (
       <CourtsLarge
@@ -58,6 +67,9 @@ export default function CourtsPresentPage() {
         activeMatch={activeMatch}
         nextMatch={futureMatch}
         stageItemsLookup={stageItemsLookup}
+        teamsLookup={teamsLookup}
+        showPlayerNames={showPlayerNames}
+        showTime={!isDynamic}
       />
     );
   });

@@ -229,7 +229,7 @@ async def create_multiple_teams(
 
     async with database.transaction():
         for team_name, players in teams_and_players:
-            await database.execute(
+            team_id = await database.execute(
                 query=teams.insert(),
                 values=TeamInsertable(
                     name=team_name,
@@ -238,8 +238,15 @@ async def create_multiple_teams(
                     tournament_id=tournament_id,
                 ).model_dump(),
             )
+            # Link each player to the team they were entered with (e.g. "Team,Alice,Bob"),
+            # so player names show up on the team, bracket and court board — not just the
+            # Players page.
             for player in players:
                 player_body = PlayerBody(name=player, active=team_body.active)
-                await insert_player(player_body, tournament_id)
+                player_id = await insert_player(player_body, tournament_id)
+                await database.execute(
+                    query=players_x_teams.insert(),
+                    values={"team_id": team_id, "player_id": player_id},
+                )
 
     return SuccessResponse()

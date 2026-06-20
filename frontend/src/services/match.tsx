@@ -45,3 +45,13 @@ export async function scheduleMatches(tournament_id: number) {
     .post(`tournaments/${tournament_id}/schedule_matches`)
     .catch((response: any) => handleRequestError(response));
 }
+
+export async function assignMatchToCourt(
+  tournament_id: number,
+  match_id: number,
+  court_id: number
+) {
+  return createAxios()
+    .post(`tournaments/${tournament_id}/matches/${match_id}/assign_court`, { court_id })
+    .catch((response: any) => handleRequestError(response));
+}

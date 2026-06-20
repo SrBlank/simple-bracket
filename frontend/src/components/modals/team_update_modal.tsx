@@ -5,7 +5,7 @@ import {
   Fieldset,
   Image,
   Modal,
-  MultiSelect,
+  TagsInput,
   TextInput,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
@@ -17,6 +17,7 @@ import { SWRResponse } from 'swr';
 import { DropzoneButton } from '@components/utils/file_upload';
 import { FullTeamWithPlayers, Player, TeamsWithPlayersResponse } from '@openapi';
 import { getBaseApiUrl, getPlayers, removeTeamLogo, requestSucceeded } from '@services/adapter';
+import { resolvePlayerIdsByName } from '@services/player';
 import { updateTeam } from '@services/team';
 
 function TeamLogo({ team }: { team: FullTeamWithPlayers | null }) {
@@ -48,7 +49,7 @@ export default function TeamUpdateModal({
     initialValues: {
       name: team.name,
       active: team.active,
-      player_ids: team.players.map((player) => `${player.id}`),
+      player_names: team.players.map((player) => player.name),
     },
 
     validate: {
@@ -61,12 +62,18 @@ export default function TeamUpdateModal({
       <Modal opened={opened} onClose={() => setOpened(false)} title={t('edit_team_title')}>
         <form
           onSubmit={form.onSubmit(async (values) => {
+            // Resolve typed names to player ids, creating any new players on the fly.
+            const playerIds = await resolvePlayerIdsByName(
+              tournament_id,
+              values.player_names,
+              players
+            );
             const result = await updateTeam(
               tournament_id,
               team.id,
               values.name,
               values.active,
-              values.player_ids
+              playerIds
             );
             if (requestSucceeded(result)) {
               await swrTeamsResponse.mutate();
@@ -87,15 +94,14 @@ export default function TeamUpdateModal({
             {...form.getInputProps('active', { type: 'checkbox' })}
           />
 
-          <MultiSelect
-            data={players.map((p) => ({ value: `${p.id}`, label: p.name }))}
+          <TagsInput
+            data={players.map((p) => p.name)}
             label={t('team_member_select_title')}
-            placeholder={t('team_member_select_placeholder')}
+            placeholder="Type a player name and press Enter"
+            description="Add the players on this team. New names are created automatically."
             maxDropdownHeight={160}
-            searchable
             mt={12}
-            limit={25}
-            {...form.getInputProps('player_ids')}
+            {...form.getInputProps('player_names')}
           />
 
           <Fieldset legend={t('logo_settings_title')} mt={12} radius="md">

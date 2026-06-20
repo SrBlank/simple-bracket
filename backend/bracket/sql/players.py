@@ -88,8 +88,8 @@ async def sql_delete_players_of_tournament(tournament_id: TournamentId) -> None:
     await database.fetch_one(query=query, values={"tournament_id": tournament_id})
 
 
-async def insert_player(player_body: PlayerBody, tournament_id: TournamentId) -> None:
-    await database.execute(
+async def insert_player(player_body: PlayerBody, tournament_id: TournamentId) -> PlayerId:
+    return await database.execute(
         query=players.insert(),
         values=PlayerToInsert(
             **player_body.model_dump(),

@@ -33,6 +33,22 @@
   background-color: var(--mantine-color-default-border);
 }
 
+.courtBar {
+  padding: 0.15rem 0.7rem;
+  background-color: light-dark(var(--mantine-color-blue-1), var(--mantine-color-blue-9));
+  color: light-dark(var(--mantine-color-blue-9), var(--mantine-color-blue-0));
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.courtBar[data-playing='true'] {
+  background-color: var(--mantine-color-grape-7);
+  color: var(--mantine-color-white);
+}
+
+.players {
+  line-height: 1.1;
+}
+
 .name {
   flex: 1;
   min-width: 0;

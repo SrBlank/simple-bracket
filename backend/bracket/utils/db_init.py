@@ -11,7 +11,7 @@ from bracket.logic.ranking.calculation import (
 )
 from bracket.logic.scheduling.builder import build_matches_for_stage_item
 from bracket.models.db.account import UserAccountType
-from bracket.models.db.club import ClubInsertable
+from bracket.models.db.club import ClubCreateBody, ClubInsertable
 from bracket.models.db.court import CourtInsertable
 from bracket.models.db.match import Match, MatchBody
 from bracket.models.db.player import PlayerInsertable
@@ -47,6 +47,7 @@ from bracket.schema import (
     users,
     users_x_clubs,
 )
+from bracket.sql.clubs import create_club
 from bracket.sql.matches import sql_update_match
 from bracket.sql.stage_items import get_stage_item, sql_create_stage_item_with_inputs
 from bracket.sql.stages import get_full_tournament_details
@@ -109,6 +110,12 @@ async def create_admin_user() -> UserId:
             account_type=UserAccountType.REGULAR,
         )
     )
+
+    # The seeded organizer is created directly (not via the registration flow that normally makes a
+    # club), so give them a default club to attach tournaments to — otherwise "Create Tournament"
+    # has no club to use and silently does nothing.
+    await create_club(ClubCreateBody(name="My Club"), user.id)
+
     return user.id
 
 

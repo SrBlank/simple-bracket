@@ -1,4 +1,4 @@
-import { Button, Checkbox, Modal, MultiSelect, Tabs, TextInput } from '@mantine/core';
+import { Button, Checkbox, Modal, Tabs, TagsInput, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconUser, IconUsers, IconUsersPlus } from '@tabler/icons-react';
 import { useState } from 'react';
@@ -9,6 +9,7 @@ import SaveButton from '@components/buttons/save';
 import { MultiTeamsInput } from '@components/forms/player_create_csv_input';
 import { Player, TeamsWithPlayersResponse } from '@openapi';
 import { getPlayers } from '@services/adapter';
+import { resolvePlayerIdsByName } from '@services/player';
 import { createTeam, createTeams } from '@services/team';
 
 function MultiTeamTab({
@@ -65,11 +66,11 @@ function SingleTeamTab({
   const { t } = useTranslation();
   const { data } = getPlayers(tournament_id, false);
   const players: Player[] = data != null ? data.data.players : [];
-  const form = useForm({
+  const form = useForm<{ name: string; active: boolean; player_names: string[] }>({
     initialValues: {
       name: '',
       active: true,
-      player_ids: [],
+      player_names: [],
     },
     validate: {
       name: (value) => (value.length > 0 ? null : t('too_short_name_validation')),
@@ -78,7 +79,9 @@ function SingleTeamTab({
   return (
     <form
       onSubmit={form.onSubmit(async (values) => {
-        await createTeam(tournament_id, values.name, values.active, values.player_ids);
+        // Resolve typed names to player ids, creating any new players on the fly.
+        const playerIds = await resolvePlayerIdsByName(tournament_id, values.player_names, players);
+        await createTeam(tournament_id, values.name, values.active, playerIds);
         await swrTeamsResponse.mutate();
         setOpened(false);
       })}
@@ -96,15 +99,15 @@ function SingleTeamTab({
         {...form.getInputProps('active', { type: 'checkbox' })}
       />
 
-      <MultiSelect
-        data={players.map((p) => ({ value: `${p.id}`, label: p.name }))}
+      <TagsInput
+        data={players.map((p) => p.name)}
         label={t('team_member_select_title')}
+        placeholder="Type a player name and press Enter"
+        description="New names are created automatically."
         maxDropdownHeight={160}
-        searchable
         mb="12rem"
         mt={12}
-        limit={25}
-        {...form.getInputProps('player_ids')}
+        {...form.getInputProps('player_names')}
       />
       <Button fullWidth style={{ marginTop: 10 }} color="green" type="submit">
         {t('save_button')}

@@ -78,13 +78,20 @@ async def sql_update_tournament(
             dashboard_endpoint = :dashboard_endpoint,
             players_can_be_in_multiple_teams = :players_can_be_in_multiple_teams,
             auto_assign_courts = :auto_assign_courts,
+            tournament_type = :tournament_type,
+            scheduling_mode = :scheduling_mode,
+            court_auto_advance = :court_auto_advance,
+            show_player_names = :show_player_names,
             duration_minutes = :duration_minutes,
             margin_minutes = :margin_minutes
         WHERE tournaments.id = :tournament_id
         """
+    values = tournament.model_dump()
+    values["tournament_type"] = tournament.tournament_type.value
+    values["scheduling_mode"] = tournament.scheduling_mode.value
     await database.execute(
         query=query,
-        values={"tournament_id": tournament_id, **tournament.model_dump()},
+        values={"tournament_id": tournament_id, **values},
     )
 
 
@@ -116,6 +123,10 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             logo_path,
             players_can_be_in_multiple_teams,
             auto_assign_courts,
+            tournament_type,
+            scheduling_mode,
+            court_auto_advance,
+            show_player_names,
             duration_minutes,
             margin_minutes
         )
@@ -128,10 +139,17 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             :logo_path,
             :players_can_be_in_multiple_teams,
             :auto_assign_courts,
+            :tournament_type,
+            :scheduling_mode,
+            :court_auto_advance,
+            :show_player_names,
             :duration_minutes,
             :margin_minutes
         )
         RETURNING id
         """
-    new_id = await database.fetch_val(query=query, values=tournament.model_dump())
+    values = tournament.model_dump()
+    values["tournament_type"] = tournament.tournament_type.value
+    values["scheduling_mode"] = tournament.scheduling_mode.value
+    new_id = await database.fetch_val(query=query, values=values)
     return TournamentId(new_id)

@@ -11,3 +11,9 @@ export async function deleteCourt(tournament_id: number, court_id: number) {
     .delete(`tournaments/${tournament_id}/courts/${court_id}`)
     .catch((response: any) => handleRequestError(response));
 }
+
+export async function updateCourt(tournament_id: number, court_id: number, name: string) {
+  return createAxios()
+    .put(`tournaments/${tournament_id}/courts/${court_id}`, { name })
+    .catch((response: any) => handleRequestError(response));
+}

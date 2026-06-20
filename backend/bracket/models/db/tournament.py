@@ -14,6 +14,28 @@ class TournamentStatus(EnumAutoStr):
     ARCHIVED = auto()
 
 
+class TournamentType(EnumAutoStr):
+    """
+    A preset that bundles sensible defaults at creation time. PICKLEBALL turns on player-name
+    display and the dynamic (no-clock) scheduling mode by default; every individual setting
+    stays overridable in the tournament settings afterwards.
+    """
+
+    GENERIC = auto()
+    PICKLEBALL = auto()
+
+
+class SchedulingMode(EnumAutoStr):
+    """
+    TIMED   - matches are laid out on a clock with start times (the original behavior).
+    DYNAMIC - no clock: matches sit in a queue and are pulled onto a court the moment one frees
+              up. Start times are optional metadata only.
+    """
+
+    TIMED = auto()
+    DYNAMIC = auto()
+
+
 class TournamentInsertable(BaseModelORM):
     club_id: ClubId
     name: str
@@ -26,6 +48,10 @@ class TournamentInsertable(BaseModelORM):
     logo_path: str | None = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
+    tournament_type: TournamentType = TournamentType.GENERIC
+    scheduling_mode: SchedulingMode = SchedulingMode.TIMED
+    court_auto_advance: bool = True
+    show_player_names: bool = False
     status: TournamentStatus = TournamentStatus.OPEN
 
 
@@ -40,6 +66,10 @@ class TournamentUpdateBody(BaseModelORM):
     dashboard_endpoint: EmptyStrToNone | str = None
     players_can_be_in_multiple_teams: bool
     auto_assign_courts: bool
+    tournament_type: TournamentType = TournamentType.GENERIC
+    scheduling_mode: SchedulingMode = SchedulingMode.TIMED
+    court_auto_advance: bool = True
+    show_player_names: bool = False
     duration_minutes: int = Field(..., ge=1)
     margin_minutes: int = Field(..., ge=0)
 
