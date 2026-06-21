@@ -82,6 +82,7 @@ async def sql_update_tournament(
             scheduling_mode = :scheduling_mode,
             court_auto_advance = :court_auto_advance,
             show_player_names = :show_player_names,
+            show_qr_on_tv = :show_qr_on_tv,
             duration_minutes = :duration_minutes,
             margin_minutes = :margin_minutes
         WHERE tournaments.id = :tournament_id
@@ -127,6 +128,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             scheduling_mode,
             court_auto_advance,
             show_player_names,
+            show_qr_on_tv,
             duration_minutes,
             margin_minutes
         )
@@ -143,6 +145,7 @@ async def sql_create_tournament(tournament: TournamentBody) -> TournamentId:
             :scheduling_mode,
             :court_auto_advance,
             :show_player_names,
+            :show_qr_on_tv,
             :duration_minutes,
             :margin_minutes
         )

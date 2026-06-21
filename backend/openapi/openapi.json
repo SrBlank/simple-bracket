@@ -2750,6 +2750,11 @@
             "title": "Show Player Names",
             "type": "boolean"
           },
+          "show_qr_on_tv": {
+            "default": true,
+            "title": "Show Qr On Tv",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
@@ -2780,6 +2785,7 @@
           "scheduling_mode",
           "court_auto_advance",
           "show_player_names",
+          "show_qr_on_tv",
           "status",
           "id"
         ],
@@ -2841,6 +2847,11 @@
             "title": "Show Player Names",
             "type": "boolean"
           },
+          "show_qr_on_tv": {
+            "default": true,
+            "title": "Show Qr On Tv",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
@@ -2862,6 +2873,7 @@
           "scheduling_mode",
           "court_auto_advance",
           "show_player_names",
+          "show_qr_on_tv",
           "duration_minutes",
           "margin_minutes",
           "club_id"
@@ -2961,6 +2973,11 @@
             "title": "Show Player Names",
             "type": "boolean"
           },
+          "show_qr_on_tv": {
+            "default": true,
+            "title": "Show Qr On Tv",
+            "type": "boolean"
+          },
           "start_time": {
             "format": "date-time",
             "title": "Start Time",
@@ -2982,6 +2999,7 @@
           "scheduling_mode",
           "court_auto_advance",
           "show_player_names",
+          "show_qr_on_tv",
           "duration_minutes",
           "margin_minutes"
         ],

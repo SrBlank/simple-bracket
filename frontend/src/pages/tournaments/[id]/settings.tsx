@@ -18,7 +18,13 @@ import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { MdDelete } from '@react-icons/all-files/md/MdDelete';
 import { MdUnarchive } from '@react-icons/all-files/md/MdUnarchive';
-import { IconCalendar, IconCalendarTime, IconCopy, IconPencil } from '@tabler/icons-react';
+import {
+  IconCalendar,
+  IconCalendarTime,
+  IconCopy,
+  IconDeviceTv,
+  IconPencil,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { MdArchive } from 'react-icons/md';
 import { useNavigate } from 'react-router';
@@ -139,6 +145,7 @@ function GeneralTournamentForm({
       scheduling_mode: tournament.scheduling_mode,
       court_auto_advance: tournament.court_auto_advance,
       show_player_names: tournament.show_player_names,
+      show_qr_on_tv: tournament.show_qr_on_tv,
       duration_minutes: tournament.duration_minutes,
       margin_minutes: tournament.margin_minutes,
     },
@@ -169,6 +176,7 @@ function GeneralTournamentForm({
           scheduling_mode: values.scheduling_mode,
           court_auto_advance: values.court_auto_advance,
           show_player_names: values.show_player_names,
+          show_qr_on_tv: values.show_qr_on_tv,
           start_time: values.start_time.toISOString(),
           duration_minutes: values.duration_minutes,
           margin_minutes: values.margin_minutes,
@@ -276,6 +284,26 @@ function GeneralTournamentForm({
           label={t('dashboard_public_description')}
           {...form.getInputProps('dashboard_public', { type: 'checkbox' })}
         />
+
+        <Checkbox
+          mt="md"
+          label="Show the public dashboard link on the TV display (so spectators can follow along)"
+          {...form.getInputProps('show_qr_on_tv', { type: 'checkbox' })}
+        />
+
+        <Button
+          component="a"
+          href={`${getBaseURL()}/tournaments/${tournament.dashboard_endpoint}/dashboard/present/tv`}
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="light"
+          color="indigo"
+          mt="md"
+          leftSection={<IconDeviceTv size="1.1rem" stroke={1.5} />}
+          disabled={form.values.dashboard_endpoint === ''}
+        >
+          Open TV display
+        </Button>
 
         <DropzoneButton
           tournamentId={tournament.id}

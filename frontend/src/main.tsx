@@ -20,6 +20,7 @@ import DashboardBracketPage from './pages/tournaments/[id]/dashboard/bracket';
 import DashboardNotFoundPage from './pages/tournaments/[id]/dashboard/dashboard_404';
 import CourtsPresentPage from './pages/tournaments/[id]/dashboard/present/courts';
 import StandingsPresentPage from './pages/tournaments/[id]/dashboard/present/standings';
+import TvDisplayPage from './pages/tournaments/[id]/dashboard/present/tv';
 import DashboardStandingsPage from './pages/tournaments/[id]/dashboard/standings';
 import DashboardTeamsPage from './pages/tournaments/[id]/dashboard/teams';
 import PlayersPage from './pages/tournaments/[id]/players';
@@ -97,6 +98,7 @@ ensureAutoLogin().finally(() => {
                       <Route path="present">
                         <Route path="courts" element={<CourtsPresentPage />} />
                         <Route path="standings" element={<StandingsPresentPage />} />
+                        <Route path="tv" element={<TvDisplayPage />} />
                       </Route>
                       <Route path="*" element={<DashboardNotFoundPage />} />
                     </Route>

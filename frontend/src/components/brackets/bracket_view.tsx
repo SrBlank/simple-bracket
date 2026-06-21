@@ -197,6 +197,52 @@ function ZoomControls({
   );
 }
 
+// A single rendered column of the bracket: a header label and the matches stacked in it.
+type BracketColumn = { key: string; label: string; matches: MatchWithDetails[] };
+
+// Lay the rounds out as left-to-right columns. In `split` mode the bracket is folded into two
+// mirrored halves that meet at the final in the middle (much better aspect ratio for a TV): each
+// round (except the final) is cut in half — the top half feeds the left side, the bottom half the
+// right side — and the right side is rendered in reverse round order so it advances inward.
+function buildColumns(rounds: { id: number; matches: any[] }[], split: boolean): BracketColumn[] {
+  const labelFor = (index: number) => roundLabel(index, rounds.length);
+
+  if (!split || rounds.length < 2) {
+    return rounds.map((round, index) => ({
+      key: `${round.id}`,
+      label: labelFor(index),
+      matches: round.matches as MatchWithDetails[],
+    }));
+  }
+
+  const finalIndex = rounds.length - 1;
+  const leftColumns: BracketColumn[] = [];
+  const rightColumns: BracketColumn[] = [];
+
+  for (let i = 0; i < finalIndex; i += 1) {
+    const matches = rounds[i].matches as MatchWithDetails[];
+    const half = Math.ceil(matches.length / 2);
+    leftColumns.push({
+      key: `L${rounds[i].id}`,
+      label: labelFor(i),
+      matches: matches.slice(0, half),
+    });
+    rightColumns.push({
+      key: `R${rounds[i].id}`,
+      label: labelFor(i),
+      matches: matches.slice(half),
+    });
+  }
+
+  const finalColumn: BracketColumn = {
+    key: `${rounds[finalIndex].id}`,
+    label: labelFor(finalIndex),
+    matches: rounds[finalIndex].matches as MatchWithDetails[],
+  };
+
+  return [...leftColumns, finalColumn, ...rightColumns.reverse()];
+}
+
 export function SingleEliminationBracket({
   stageItem,
   stageItemsLookup,
@@ -204,6 +250,8 @@ export function SingleEliminationBracket({
   teamsLookup = null,
   showPlayerNames = false,
   zoomable = false,
+  split = false,
+  fillHeight = false,
 }: {
   stageItem: StageItemWithRounds;
   stageItemsLookup: any;
@@ -211,8 +259,11 @@ export function SingleEliminationBracket({
   teamsLookup?: any;
   showPlayerNames?: boolean;
   zoomable?: boolean;
+  split?: boolean;
+  fillHeight?: boolean;
 }) {
   const rounds = [...stageItem.rounds].sort((a, b) => a.id - b.id);
+  const columns = buildColumns(rounds, split);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -238,38 +289,58 @@ export function SingleEliminationBracket({
   return (
     <>
       {zoomable && <ZoomControls zoom={zoom} setZoom={setZoom} onFit={fitToScreen} />}
-      <Box className={classes.bracketScroll} ref={containerRef}>
+      <Box
+        className={classes.bracketScroll}
+        ref={containerRef}
+        style={
+          fillHeight
+            ? { height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+            : undefined
+        }
+      >
         <ChampionBanner
           stageItem={stageItem}
           stageItemsLookup={stageItemsLookup}
           matchesLookup={matchesLookup}
         />
-        <div ref={contentRef} style={zoomable ? { zoom, width: 'min-content' } : undefined}>
-          <Group align="stretch" gap="xl" wrap="nowrap" className={classes.bracket}>
-            {rounds.map((round, index) => {
-              const label = roundLabel(index, rounds.length);
-              return (
-                <Stack key={round.id} justify="space-around" gap="lg" className={classes.round}>
-                  <Center>
-                    <Badge variant="light" color="gray">
-                      {label}
-                    </Badge>
-                  </Center>
-                  <Stack justify="space-around" gap="lg" style={{ flex: 1 }}>
-                    {round.matches.map((match) => (
-                      <BracketMatch
-                        key={match.id}
-                        match={match as MatchWithDetails}
-                        stageItemsLookup={stageItemsLookup}
-                        matchesLookup={matchesLookup}
-                        teamsLookup={teamsLookup}
-                        showPlayerNames={showPlayerNames}
-                      />
-                    ))}
-                  </Stack>
+        <div
+          ref={contentRef}
+          style={
+            zoomable
+              ? { zoom, width: 'min-content' }
+              : fillHeight
+                ? { flex: 1, minHeight: 0 }
+                : undefined
+          }
+        >
+          <Group
+            align="stretch"
+            gap="xl"
+            wrap="nowrap"
+            className={classes.bracket}
+            style={fillHeight ? { height: '100%' } : undefined}
+          >
+            {columns.map((column) => (
+              <Stack key={column.key} justify="space-around" gap="lg" className={classes.round}>
+                <Center>
+                  <Badge variant="light" color="gray">
+                    {column.label}
+                  </Badge>
+                </Center>
+                <Stack justify="space-around" gap="lg" style={{ flex: 1 }}>
+                  {column.matches.map((match) => (
+                    <BracketMatch
+                      key={match.id}
+                      match={match}
+                      stageItemsLookup={stageItemsLookup}
+                      matchesLookup={matchesLookup}
+                      teamsLookup={teamsLookup}
+                      showPlayerNames={showPlayerNames}
+                    />
+                  ))}
                 </Stack>
-              );
-            })}
+              </Stack>
+            ))}
           </Group>
         </div>
       </Box>

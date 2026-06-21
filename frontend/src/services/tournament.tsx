@@ -11,6 +11,7 @@ export interface TournamentFormValues {
   scheduling_mode: 'TIMED' | 'DYNAMIC';
   court_auto_advance: boolean;
   show_player_names: boolean;
+  show_qr_on_tv: boolean;
   duration_minutes: number;
   margin_minutes: number;
 }

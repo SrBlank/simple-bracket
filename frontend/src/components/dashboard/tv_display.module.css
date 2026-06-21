@@ -1,0 +1,86 @@
+/* Full-screen, chrome-free display tuned for a venue TV. */
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0b0c0f;
+  color: var(--mantine-color-gray-0);
+}
+
+/* Hide the cursor once the operator stops moving the mouse, so it doesn't sit on the screen. */
+.root[data-idle='true'] {
+  cursor: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.title {
+  font-weight: 800;
+  font-size: clamp(1.1rem, 2.2vw, 2rem);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Follow at <url>" line under the tournament name, for spectators to open on their phones. */
+.followLink {
+  margin-top: 2px;
+  font-size: clamp(0.7rem, 1vw, 0.95rem);
+  color: var(--mantine-color-gray-5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.followLink strong {
+  color: var(--mantine-color-gray-2);
+  font-weight: 700;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: opacity 0.3s ease;
+}
+
+.controls[data-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.viewport {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+/* The bracket is rendered at natural size and scaled with a transform to fit the viewport. */
+.fitContent {
+  width: max-content;
+  transform-origin: center center;
+}
+
+.fill {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}

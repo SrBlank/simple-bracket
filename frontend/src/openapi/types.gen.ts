@@ -1560,6 +1560,10 @@ export type Tournament = {
      */
     show_player_names: boolean;
     /**
+     * Show Qr On Tv
+     */
+    show_qr_on_tv: boolean;
+    /**
      * Start Time
      */
     start_time: string;
@@ -1612,6 +1616,10 @@ export type TournamentBody = {
      * Show Player Names
      */
     show_player_names: boolean;
+    /**
+     * Show Qr On Tv
+     */
+    show_qr_on_tv: boolean;
     /**
      * Start Time
      */
@@ -1688,6 +1696,10 @@ export type TournamentUpdateBody = {
      * Show Player Names
      */
     show_player_names: boolean;
+    /**
+     * Show Qr On Tv
+     */
+    show_qr_on_tv: boolean;
     /**
      * Start Time
      */

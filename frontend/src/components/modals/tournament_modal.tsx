@@ -50,6 +50,7 @@ function GeneralTournamentForm({
       scheduling_mode: 'TIMED' as 'TIMED' | 'DYNAMIC',
       court_auto_advance: true,
       show_player_names: false,
+      show_qr_on_tv: true,
       duration_minutes: 10,
       margin_minutes: 5,
     },

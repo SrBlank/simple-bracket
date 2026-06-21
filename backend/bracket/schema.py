@@ -49,6 +49,7 @@ tournaments = Table(
     ),
     Column("court_auto_advance", Boolean, nullable=False, server_default="t"),
     Column("show_player_names", Boolean, nullable=False, server_default="f"),
+    Column("show_qr_on_tv", Boolean, nullable=False, server_default="t"),
     Column("duration_minutes", Integer, nullable=False, server_default="15"),
     Column("margin_minutes", Integer, nullable=False, server_default="5"),
     Column(

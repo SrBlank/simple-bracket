@@ -52,6 +52,7 @@ class TournamentInsertable(BaseModelORM):
     scheduling_mode: SchedulingMode = SchedulingMode.TIMED
     court_auto_advance: bool = True
     show_player_names: bool = False
+    show_qr_on_tv: bool = True
     status: TournamentStatus = TournamentStatus.OPEN
 
 
@@ -70,6 +71,7 @@ class TournamentUpdateBody(BaseModelORM):
     scheduling_mode: SchedulingMode = SchedulingMode.TIMED
     court_auto_advance: bool = True
     show_player_names: bool = False
+    show_qr_on_tv: bool = True
     duration_minutes: int = Field(..., ge=1)
     margin_minutes: int = Field(..., ge=0)
 

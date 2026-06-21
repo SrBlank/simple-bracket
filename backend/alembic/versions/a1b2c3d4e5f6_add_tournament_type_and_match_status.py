@@ -56,6 +56,10 @@ def upgrade() -> None:
         sa.Column("show_player_names", sa.Boolean(), server_default="f", nullable=False),
     )
     op.add_column(
+        "tournaments",
+        sa.Column("show_qr_on_tv", sa.Boolean(), server_default="t", nullable=False),
+    )
+    op.add_column(
         "matches",
         sa.Column("status", match_status_enum, server_default="PENDING", nullable=False),
     )
@@ -68,6 +72,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_column("matches", "walkover")
     op.drop_column("matches", "status")
+    op.drop_column("tournaments", "show_qr_on_tv")
     op.drop_column("tournaments", "show_player_names")
     op.drop_column("tournaments", "court_auto_advance")
     op.drop_column("tournaments", "scheduling_mode")
